@@ -1,55 +1,53 @@
-# Ship Workflow
+---
+description: 
+---
 
-## Purpose
+# # Ship Workflow
 
-Systematic workflow for validating, merging, releasing, and deploying production-ready code safely.
+Before considering a feature ready to commit or submit for review:
 
-## Workflow steps
+## 1. Git status
 
-### 1. Pre-Ship Verification
-- Ensure working tree is clean (`git status`).
-- Run the full verification suite locally:
-  - Unit and integration test suites.
-  - Linter and static analysis checks.
-  - Type checker (e.g., TypeScript / mypy).
-  - Production build command (`build`).
-- Confirm zero failures, errors, or unhandled warnings.
+Inspect current status.
 
-### 2. Hygiene & Secret Audit
-- Review the complete diff against `main` (`git diff main...HEAD`).
-- Verify no sensitive data (API keys, secrets, credentials, `.env` files) is committed.
-- Verify no temporary debugging code, console logs, or scratch files are left behind.
-- Ensure any relevant documentation or changelog entries are updated.
+## 2. Diff
 
-### 3. Sync & Rebase
-- Fetch the latest changes from the upstream base branch:
-  ```bash
-  git fetch origin main
-  git rebase origin/main
-  ```
-- If conflicts arise, resolve them carefully, re-run tests, and verify integrity.
+Review all changes.
 
-### 4. Review & Approvals
-- Verify that all code review comments and blockers are resolved.
-- Confirm required approvals are met.
-- Ensure all remote CI/CD pipeline checks pass.
+## 3. Tests
 
-### 5. Merge
-- Merge into `main` using the established repository strategy:
-  - **Squash & Merge**: For clean, single-commit feature histories.
-  - **Rebase & Merge**: For multi-commit features with intentional atomic history.
-- Ensure the merge commit message follows Conventional Commits.
+Run relevant tests.
 
-### 6. Release & Tagging (if applicable)
-- Create and push semantic version tags when cutting releases:
-  ```bash
-  git tag -a vX.Y.Z -m "Release vX.Y.Z"
-  git push origin vX.Y.Z
-  ```
-- Publish release notes and changelogs.
+## 4. Quality
 
-### 7. Post-Deployment Smoke Test
-- Monitor the deployment pipeline to confirm successful rollout.
-- Run smoke tests or verify health endpoints in the target environment.
-- Monitor error logs and metrics for anomalies.
-- Have a rollback strategy ready if critical issues surface.
+Run appropriate:
+
+- Linter
+- Formatter
+- Type checker
+- Build
+
+## 5. Security
+
+Check for:
+
+- Secrets
+- Credentials
+- Debug code
+- Unsafe configuration
+
+## 6. Review
+
+Perform a code review of the changes.
+
+## 7. Summary
+
+Report:
+
+- Files changed
+- Tests
+- Checks
+- Problems found
+- Remaining concerns
+
+Do not commit or push unless explicitly requested.

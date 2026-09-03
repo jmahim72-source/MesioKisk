@@ -1,50 +1,86 @@
+---
+description: 
+---
+
 # New Feature Workflow
 
-## Purpose
+## Goal
 
-Standardized end-to-end workflow for planning, implementing, testing, and delivering new features.
+Safely implement a new feature in the existing project.
 
-## Workflow steps
+## Steps
 
-### 1. Requirements & Scope
-- Understand the user requirements and acceptance criteria.
-- Clarify any ambiguous requirements before writing code.
-- Define what is in scope and out of scope.
+### 1. Inspect
 
-### 2. Architecture & Design
-- Inspect existing codebase architecture and identify reusable components/utilities.
-- Plan component interfaces, data models, and state flow.
-- Explain the intended approach briefly before making changes.
+Inspect:
 
-### 3. Branch Setup
-- Ensure the working tree is clean (`git status`).
-- Create a dedicated feature branch:
-  ```bash
-  git checkout -b feat/<feature-name>
-  ```
+- Repository structure
+- Git status
+- Relevant source files
+- Existing tests
+- Existing architecture
 
-### 4. Implementation
-- Implement the minimal code required to satisfy requirements.
-- Follow established project patterns and conventions.
-- Keep modules focused on a single responsibility.
-- Handle edge cases, input validation, and error states.
+Do not modify anything yet.
 
-### 5. Testing & Verification
-- Write unit tests for new logic and integration tests for component interactions.
-- Run all verification checks:
-  - Unit / integration test suite
-  - Linter and type checker
-  - Build command
-- Verify observable behavior directly.
+### 2. Understand
 
-### 6. Review & Diff Inspection
-- Review the complete git diff (`git diff`).
-- Ensure no accidental files, secrets, or debug artifacts remain.
-- Verify no unrelated files or functionality were modified.
+Determine:
 
-### 7. Commit & Delivery
-- Commit changes using Conventional Commits:
-  ```bash
-  git commit -m "feat(<scope>): <description>"
-  ```
-- Summarize changes, testing performed, and any next steps.
+- What the feature should do
+- Which components are affected
+- Existing patterns to follow
+- Potential side effects
+
+### 3. Plan
+
+Create a concise implementation plan.
+
+Include:
+
+- Files to modify
+- Files to create
+- Main implementation steps
+- Testing strategy
+
+Wait for approval before major architectural changes.
+
+### 4. Implement
+
+Implement the smallest appropriate change.
+
+Follow existing project conventions.
+
+Do not modify unrelated code.
+
+### 5. Test
+
+Run:
+
+- Relevant tests
+- Lint
+- Type checking
+- Build
+
+when applicable.
+
+### 6. Review
+
+Inspect the complete git diff.
+
+Look for:
+
+- Bugs
+- Security issues
+- Unnecessary changes
+- Missing tests
+- Accidental files
+
+### 7. Report
+
+Provide:
+
+- What changed
+- Files changed
+- Tests run
+- Test results
+- Remaining concerns
