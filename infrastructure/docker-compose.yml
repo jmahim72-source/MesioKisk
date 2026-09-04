@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: services/api/Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://medikiosk:password@postgres:5432/medikiosk
+      - REDIS_URL=redis://redis:6379/0
+      - SECRET_KEY=medikiosk-production-secret-key-2026
+    depends_on:
+      - postgres
+      - redis
+
+  patient-kiosk:
+    build:
+      context: ../apps/patient-kiosk
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+
+  doctor-dashboard:
+    build:
+      context: ../apps/doctor-dashboard
+    ports:
+      - "3001:3001"
+    depends_on:
+      - api
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: medikiosk
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: medikiosk
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+volumes:
+  postgres_data:
