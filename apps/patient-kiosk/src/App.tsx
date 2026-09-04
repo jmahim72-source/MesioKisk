@@ -2,11 +2,21 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   Mic, MicOff, Volume2, ShieldCheck, HeartPulse, User, CheckCircle2,
   AlertTriangle, ArrowRight, ArrowLeft, RefreshCw, FileText, Upload,
-  Clock, Sparkles, Building2, Eye, EyeOff, Lock, Stethoscope, Sparkle
+  Clock, Sparkles, Building2, Eye, EyeOff, Lock, Stethoscope, Check
 } from 'lucide-react';
 import { KioskAPI } from './services/api';
 
 type Step = 'LANGUAGE' | 'CONSENT' | 'IDENTIFICATION' | 'INTERVIEW' | 'DOCUMENTS' | 'TICKET';
+
+const STAGE_STEPS = [
+  { num: 1, hi: 'मुख्य समस्या', en: 'Chief Complaint' },
+  { num: 2, hi: 'शुरुआत व समय', en: 'Onset & Duration' },
+  { num: 3, hi: 'लक्षण स्थिति', en: 'Location & Character' },
+  { num: 4, hi: 'गंभीर लक्षण', en: 'Red Flags & Pain' },
+  { num: 5, hi: 'पूर्व इतिहास', en: 'Medical History' },
+  { num: 6, hi: 'दवा व एलर्जी', en: 'Meds & Allergies' },
+  { num: 7, hi: 'आयुर्वेदिक प्रकृति', en: 'Ayurvedic Profile' }
+];
 
 export function App() {
   const [lang, setLang] = useState<'hi' | 'en'>('hi');
@@ -28,8 +38,10 @@ export function App() {
   // Interview state
   const [interviewId, setInterviewId] = useState<string>('');
   const [currentQuestion, setCurrentQuestion] = useState<any>(null);
+  const [currentStageNum, setCurrentStageNum] = useState<number>(1);
   const [answers, setAnswers] = useState<Record<string, any>>({});
   const [answerInput, setAnswerInput] = useState<string>('');
+  const [selectedMultiOptions, setSelectedMultiOptions] = useState<string[]>([]);
   const [isListening, setIsListening] = useState<boolean>(false);
   const [redFlags, setRedFlags] = useState<any[]>([]);
   const [progress, setProgress] = useState<number>(10);
@@ -51,7 +63,6 @@ export function App() {
     window.addEventListener('touchstart', handleUserAction);
     window.addEventListener('click', handleUserAction);
 
-    // Initialize Web Speech API if supported
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
       const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
       const rec = new SpeechRecognition();
@@ -80,7 +91,6 @@ export function App() {
     setShowIdleModal(false);
     setIdleCountdown(20);
 
-    // After 90s idle, show privacy modal
     idleTimerRef.current = setTimeout(() => {
       if (step !== 'LANGUAGE') {
         setShowIdleModal(true);
@@ -107,13 +117,14 @@ export function App() {
   }, [showIdleModal]);
 
   const handleCompleteReset = () => {
-    // Zero-residual PHI memory purge
     setPatient({ firstName: '', lastName: '', phone: '', abha: '', gender: 'FEMALE', dob: '1968-04-15' });
     setAnswers({});
     setAnswerInput('');
+    setSelectedMultiOptions([]);
     setRedFlags([]);
     setUploadedFiles([]);
     setStep('LANGUAGE');
+    setCurrentStageNum(1);
     setProgress(10);
     setShowIdleModal(false);
     if ('speechSynthesis' in window) window.speechSynthesis.cancel();
@@ -155,7 +166,6 @@ export function App() {
     });
   };
 
-  // Step transitions
   const handleLanguageSelect = (selectedLang: 'hi' | 'en') => {
     setLang(selectedLang);
     setStep('CONSENT');
@@ -195,7 +205,8 @@ export function App() {
     const iv = await KioskAPI.startInterview(enc.encounter_id, lang);
     setInterviewId(iv.interview_id);
     setCurrentQuestion(iv.current_question);
-    setProgress(15);
+    setCurrentStageNum(1);
+    setProgress(14);
     setStep('INTERVIEW');
 
     if (iv.current_question?.localized_text) {
@@ -203,34 +214,49 @@ export function App() {
     }
   };
 
+  const handleToggleMulti = (val: string) => {
+    if (selectedMultiOptions.includes(val)) {
+      setSelectedMultiOptions(selectedMultiOptions.filter(item => item !== val));
+    } else {
+      setSelectedMultiOptions([...selectedMultiOptions, val]);
+    }
+  };
+
   const handleAnswerSubmit = async (valueToSubmit?: string) => {
-    const text = valueToSubmit || answerInput;
+    let text = valueToSubmit || answerInput;
+    if (currentQuestion?.input_type === 'MULTI_CHOICE' && selectedMultiOptions.length > 0) {
+      text = selectedMultiOptions.join(', ');
+    }
+
     if (!text && currentQuestion?.required) return;
 
-    const qid = currentQuestion?.id || 'q_0';
+    const qid = currentQuestion?.id || `stage_${currentStageNum}`;
     setAnswers((prev) => ({ ...prev, [qid]: text }));
 
     const res = await KioskAPI.submitAnswer(interviewId, qid, text);
-    setProgress(res.interview_progress || progress + 12);
+    
+    const nextStage = currentStageNum + 1;
+    setCurrentStageNum(nextStage);
+    setProgress(res.interview_progress || Math.min(100, Math.round((nextStage / 7) * 100)));
 
     if (res.red_flag_check?.alerts?.length > 0) {
       setRedFlags(res.red_flag_check.alerts);
     }
 
     setAnswerInput('');
+    setSelectedMultiOptions([]);
 
-    if (res.next_question) {
+    if (res.next_question && nextStage <= 7) {
       setCurrentQuestion(res.next_question);
       if (res.next_question.localized_text) {
         playAudio(res.next_question.localized_text);
       }
     } else {
-      // Questions Complete -> Move to Document Upload & Token Generation
       setStep('DOCUMENTS');
       playAudio(
         lang === 'hi'
-          ? 'प्रश्नावली पूरी हो गई है। यदि आपके पास पुराने पर्चे या जांच रिपोर्ट हैं तो कृपया अपलोड करें।'
-          : 'Interview completed. Please upload any previous prescriptions or test reports.'
+          ? '७-चरणीय नैदानिक प्रश्नावली पूरी हो गई है। यदि आपके पास पुराने पर्चे या जांच रिपोर्ट हैं तो कृपया अपलोड करें।'
+          : '7-Stage Clinical Intake completed. Please upload any previous prescriptions or test reports.'
       );
     }
   };
@@ -254,25 +280,6 @@ export function App() {
         ? `आपका टोकन नंबर है ${queueToken}। कृपया प्रतीक्षा क्षेत्र में बैठें।`
         : `Your queue token number is ${queueToken}. Please take your seat in the waiting area.`
     );
-  };
-
-  const getCategoryBadge = (category: string) => {
-    switch ((category || '').toLowerCase()) {
-      case 'chief_complaint':
-        return { text: lang === 'hi' ? '🚨 मुख्य समस्या' : '🚨 Chief Complaint', color: '#ef4444' };
-      case 'hpi':
-        return { text: lang === 'hi' ? '📋 लक्षण विवरण' : '📋 Symptom Details', color: '#0d9488' };
-      case 'past_history':
-        return { text: lang === 'hi' ? '🩺 पूर्व स्वास्थ्य इतिहास' : '🩺 Medical History', color: '#6366f1' };
-      case 'medication':
-        return { text: lang === 'hi' ? '💊 नियमित दवाइयां' : '💊 Regular Medications', color: '#f59e0b' };
-      case 'allergy':
-        return { text: lang === 'hi' ? '⚠️ एलर्जी की जांच' : '⚠️ Allergy Safety', color: '#dc2626' };
-      case 'ayurvedic':
-        return { text: lang === 'hi' ? '🌿 दशविध परीक्षा (आयुर्वेद)' : '🌿 Ayurvedic Profile', color: '#10b981' };
-      default:
-        return { text: lang === 'hi' ? 'स्वास्थ्य विवरण' : 'Clinical Intake', color: '#0d9488' };
-    }
   };
 
   const getFaceEmoji = (val: number) => {
@@ -497,7 +504,7 @@ export function App() {
         </div>
       )}
 
-      {/* STEP 4: ADAPTIVE CLINICAL INTERVIEW */}
+      {/* STEP 4: STRUCTURED 7-STAGE CLINICAL INTAKE */}
       {step === 'INTERVIEW' && currentQuestion && (
         <div className="glass-card">
           {/* Progress Bar */}
@@ -505,16 +512,44 @@ export function App() {
             <div className="progress-bar" style={{ width: `${progress}%` }}></div>
           </div>
 
-          {/* Category Chip Badge */}
-          {(() => {
-            const badge = getCategoryBadge(currentQuestion.category);
-            return (
-              <div style={{ display: 'inline-block', background: `${badge.color}18`, color: badge.color, padding: '6px 14px', borderRadius: '20px', fontWeight: '700', fontSize: '14px', marginBottom: '14px' }}>
-                {badge.text}
-              </div>
-            );
-          })()}
+          {/* 7-Stage Visual Breadcrumbs */}
+          <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '12px', marginBottom: '16px' }}>
+            {STAGE_STEPS.map((s) => {
+              const isDone = s.num < currentStageNum;
+              const isCurrent = s.num === currentStageNum;
+              return (
+                <div
+                  key={s.num}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '6px 12px',
+                    borderRadius: '16px',
+                    fontSize: '13px',
+                    fontWeight: isCurrent ? '800' : '600',
+                    background: isCurrent ? 'var(--primary)' : isDone ? '#ecfdf5' : '#f1f5f9',
+                    color: isCurrent ? 'white' : isDone ? 'var(--primary-dark)' : 'var(--text-muted)',
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  <span>{s.num}. {lang === 'hi' ? s.hi : s.en}</span>
+                  {isDone && <Check size={14} />}
+                </div>
+              );
+            })}
+          </div>
 
+          {/* Current Stage Badge */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+            <span style={{ background: '#0d948818', color: '#0d9488', padding: '6px 14px', borderRadius: '20px', fontWeight: '800', fontSize: '15px' }}>
+              {lang === 'hi'
+                ? `चरण ${currentStageNum}/७: ${currentQuestion.stage_badge_hi || 'लक्षण विवरण'}`
+                : `Stage ${currentStageNum}/7: ${currentQuestion.stage_badge_en || 'Clinical History'}`}
+            </span>
+          </div>
+
+          {/* Question Title & Audio Speaker */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
             <h2 style={{ fontSize: '26px', fontWeight: '800', maxWidth: '85%', lineHeight: '1.4' }}>
               {currentQuestion.localized_text || currentQuestion.text}
@@ -556,7 +591,7 @@ export function App() {
               rows={2}
               value={answerInput}
               onChange={(e) => setAnswerInput(e.target.value)}
-              placeholder={lang === 'hi' ? 'अपनी बात बोलें या यहाँ लिखें (उदा. 3 दिन से तेज बुखार है)...' : 'Speak or type your answer here...'}
+              placeholder={lang === 'hi' ? 'अपनी बात बोलें या यहाँ लिखें...' : 'Speak or type your answer here...'}
               style={{ width: '100%', padding: '14px', fontSize: '20px', borderRadius: '12px', border: '1px solid var(--border-color)', resize: 'none' }}
             />
           </div>
@@ -579,8 +614,28 @@ export function App() {
             </div>
           )}
 
-          {/* Quick Option Cards if present */}
-          {currentQuestion.input_type !== 'FACES_SCALE' && currentQuestion.options && currentQuestion.options.length > 0 && (
+          {/* MULTI_CHOICE Options */}
+          {currentQuestion.input_type === 'MULTI_CHOICE' && currentQuestion.options && (
+            <div className="option-grid" style={{ marginBottom: '20px' }}>
+              {currentQuestion.options.map((opt: any, idx: number) => {
+                const isSelected = selectedMultiOptions.includes(opt.label || String(opt.value));
+                return (
+                  <button
+                    key={idx}
+                    className={`option-card ${isSelected ? 'selected' : ''}`}
+                    onClick={() => handleToggleMulti(opt.label || String(opt.value))}
+                    style={{ border: isSelected ? '2px solid var(--primary)' : '1px solid var(--border-color)', background: isSelected ? '#ecfdf5' : 'white' }}
+                  >
+                    <span>{opt.label || opt.value}</span>
+                    {isSelected && <CheckCircle2 size={20} color="var(--primary)" />}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {/* SINGLE_CHOICE Quick Options */}
+          {currentQuestion.input_type !== 'FACES_SCALE' && currentQuestion.input_type !== 'MULTI_CHOICE' && currentQuestion.options && currentQuestion.options.length > 0 && (
             <div className="option-grid">
               {currentQuestion.options.map((opt: any, idx: number) => (
                 <button
@@ -600,7 +655,7 @@ export function App() {
               <ArrowLeft size={24} /> {lang === 'hi' ? 'पीछे' : 'Back'}
             </button>
             <button className="btn btn-primary btn-lg" onClick={() => handleAnswerSubmit()}>
-              {lang === 'hi' ? 'उत्तर दर्ज करें (Submit)' : 'Next Question'} <ArrowRight size={24} />
+              {lang === 'hi' ? 'अगला चरण (Next Stage)' : 'Next Stage'} <ArrowRight size={24} />
             </button>
           </div>
         </div>
