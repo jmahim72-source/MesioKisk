@@ -1,5 +1,422 @@
 const API_BASE_URL = 'http://localhost:8000/api/v1';
 
+// Full Client-side Question Bank for Resilient Offline / Fallback Operation
+const OFFLINE_QUESTIONS: any[] = [
+  {
+    id: "q_chief_complaint_001",
+    category: "chief_complaint",
+    domain: "ALL",
+    text: "What problem brings you to the hospital today?",
+    localized_text: {
+      en: "What problem brings you to the hospital today?",
+      hi: "आज आपको अस्पताल किस समस्या के लिए आना पड़ा है?"
+    },
+    audio_prompt_text: {
+      en: "Please describe your main health problem or reason for visit.",
+      hi: "कृपया अपनी मुख्य तकलीफ या आने का कारण बताएं।"
+    },
+    input_type: "VOICE_OR_TEXT",
+    required: true
+  },
+  {
+    id: "q_symptom_duration_001",
+    category: "hpi",
+    domain: "ALL",
+    text: "Since how many days or weeks have you been having this problem?",
+    localized_text: {
+      en: "Since how long have you been experiencing this issue?",
+      hi: "यह तकलीफ आपको कितने दिनों या हफ़्तों से हो रही है?"
+    },
+    audio_prompt_text: {
+      en: "Select the duration of your symptom.",
+      hi: "तकलीफ की अवधि चुनें।"
+    },
+    input_type: "SINGLE_CHOICE",
+    options: [
+      { value: "TODAY", label: "Started Today", localized_label: { en: "Started Today", hi: "आज से शुरू हुआ" } },
+      { value: "1_3_DAYS", label: "1 - 3 Days", localized_label: { en: "1 - 3 Days", hi: "1 से 3 दिन" } },
+      { value: "1_2_WEEKS", label: "1 - 2 Weeks", localized_label: { en: "1 - 2 Weeks", hi: "1 से 2 हफ़्ते" } },
+      { value: "1_MONTH_PLUS", label: "More than 1 Month", localized_label: { en: "More than 1 Month", hi: "1 महीने से अधिक" } }
+    ],
+    required: true
+  },
+  {
+    id: "q_chestpain_location_001",
+    category: "hpi",
+    domain: "CARDIOVASCULAR",
+    text: "Where exactly do you feel the chest discomfort or pain?",
+    localized_text: {
+      en: "Where exactly do you feel the pain or pressure in your chest?",
+      hi: "सीने में दर्द या भारीपन किस जगह पर महसूस हो रहा है?"
+    },
+    audio_prompt_text: {
+      en: "Choose the location of your chest pain.",
+      hi: "सीने के दर्द का स्थान चुनें।"
+    },
+    input_type: "SINGLE_CHOICE",
+    options: [
+      { value: "CENTER", label: "Center of Chest", localized_label: { en: "Center of Chest", hi: "सीने के बीच में" } },
+      { value: "LEFT_SIDE", label: "Left Side radiating to Arm/Jaw", localized_label: { en: "Left Side to Arm/Jaw", hi: "बाईं तरफ / हाथ व जबड़े की ओर" } },
+      { value: "RIGHT_SIDE", label: "Right Side", localized_label: { en: "Right Side", hi: "दाईं तरफ" } },
+      { value: "UPPER_ABDOMEN", label: "Upper Stomach / Gastric", localized_label: { en: "Upper Stomach", hi: "पेट के ऊपरी हिस्से में" } }
+    ],
+    required: true
+  },
+  {
+    id: "q_associated_symptoms_cardiac_001",
+    category: "hpi",
+    domain: "CARDIOVASCULAR",
+    text: "Are you also experiencing any of these symptoms right now?",
+    localized_text: {
+      en: "Do you have breathlessness, cold sweating, or nausea?",
+      hi: "क्या आपको सांस फूलना, बहुत पसीना आना या घबराहट/उल्टी जैसा लग रहा है?"
+    },
+    audio_prompt_text: {
+      en: "Please tap all symptoms you are feeling right now.",
+      hi: "कृपया जो भी लक्षण आपको हैं, उन पर टच करें।"
+    },
+    input_type: "MULTI_CHOICE",
+    options: [
+      { value: "BREATHLESSNESS", label: "Shortness of Breath", localized_label: { en: "Shortness of Breath", hi: "सांस फूलना" } },
+      { value: "SWEATING", label: "Excessive Cold Sweating", localized_label: { en: "Excessive Sweating", hi: "अत्यधिक पसीना आना" } },
+      { value: "NAUSEA", label: "Nausea / Vomiting", localized_label: { en: "Nausea / Vomiting", hi: "जी मिचलाना / उल्टी" } },
+      { value: "DIZZINESS", label: "Dizziness / Fainting feeling", localized_label: { en: "Dizziness", hi: "चक्कर आना / बेहोशी" } },
+      { value: "NONE", label: "None of the above", localized_label: { en: "None of the above", hi: "इनमें से कोई नहीं" } }
+    ],
+    required: true
+  },
+  {
+    id: "q_fever_characteristics_001",
+    category: "hpi",
+    domain: "RESPIRATORY_FEVER",
+    text: "How severe is the fever and are you experiencing chills or shivering?",
+    localized_text: {
+      en: "How is the fever pattern and are you shivering?",
+      hi: "बुखार की तीव्रता कैसी है और क्या ठंड लगकर कंपकंपी छूट रही है?"
+    },
+    audio_prompt_text: {
+      en: "Select the fever characteristics.",
+      hi: "बुखार का प्रकार चुनें।"
+    },
+    input_type: "SINGLE_CHOICE",
+    options: [
+      { value: "HIGH_WITH_CHILLS", label: "High fever with chills & shivering", localized_label: { en: "High fever with chills", hi: "तेज बुखार व ठंड लगना" } },
+      { value: "MODERATE_CONTINUOUS", label: "Moderate continuous fever", localized_label: { en: "Continuous moderate fever", hi: "हल्का-मध्यम लगातार बुखार" } },
+      { value: "EVENING_RISE", label: "Rises mainly in the evening/night", localized_label: { en: "Evening rise fever", hi: "शाम या रात में बुखार बढ़ना" } },
+      { value: "NO_FEVER_NOW", label: "Fever resolved, only weakness", localized_label: { en: "No fever currently", hi: "अब बुखार नहीं, केवल कमजोरी" } }
+    ],
+    required: true
+  },
+  {
+    id: "q_respiratory_symptoms_001",
+    category: "hpi",
+    domain: "RESPIRATORY_FEVER",
+    text: "Do you have cough, sore throat, or difficulty breathing?",
+    localized_text: {
+      en: "Select any breathing or cough symptoms you have.",
+      hi: "क्या आपको खांसी, कफ, गले में खराश या सांस लेने में परेशानी है?"
+    },
+    audio_prompt_text: {
+      en: "Choose your cough and breathing symptoms.",
+      hi: "खांसी व सांस के लक्षण चुनें।"
+    },
+    input_type: "MULTI_CHOICE",
+    options: [
+      { value: "DRY_COUGH", label: "Dry Cough", localized_label: { en: "Dry Cough", hi: "सूखी खांसी" } },
+      { value: "PRODUCTIVE_COUGH", label: "Cough with Sputum / Mucus", localized_label: { en: "Cough with Sputum", hi: "बलगम वाली खांसी" } },
+      { value: "BREATH_SHORTNESS", label: "Shortness of Breath on Exertion", localized_label: { en: "Shortness of Breath", hi: "सांस फूलना" } },
+      { value: "SORE_THROAT", label: "Sore Throat / Difficulty Swallowing", localized_label: { en: "Sore Throat", hi: "गले में खराश / दर्द" } },
+      { value: "NONE", label: "None of these", localized_label: { en: "None of these", hi: "इनमें से कोई नहीं" } }
+    ],
+    required: true
+  },
+  {
+    id: "q_gi_pain_location_001",
+    category: "hpi",
+    domain: "GASTROINTESTINAL",
+    text: "Where is the abdominal discomfort or stomach pain located?",
+    localized_text: {
+      en: "Where is the stomach pain located?",
+      hi: "पेट में दर्द या असहजता किस हिस्से में हो रही है?"
+    },
+    audio_prompt_text: {
+      en: "Select the location of your stomach pain.",
+      hi: "पेट दर्द का स्थान चुनें।"
+    },
+    input_type: "SINGLE_CHOICE",
+    options: [
+      { value: "UPPER_EPIGASTRIC", label: "Upper Central (Burning / Acidity)", localized_label: { en: "Upper Central Burning", hi: "ऊपरी मध्य भाग (जलन / गैस)" } },
+      { value: "RIGHT_LOWER", label: "Right Lower Abdomen (Sharp)", localized_label: { en: "Right Lower Abdomen", hi: "पेट के निचले दाहिने हिस्से में तेज दर्द" } },
+      { value: "GENERALIZED_CRAMPING", label: "All over belly / Cramping", localized_label: { en: "General Cramping", hi: "पूरे पेट में मरोड़ व ऐंठन" } },
+      { value: "NO_PAIN_ONLY_UPSET", label: "No pain, only loose motion or nausea", localized_label: { en: "No pain, only upset", hi: "दर्द नहीं, सिर्फ दस्त या उल्टी" } }
+    ],
+    required: true
+  },
+  {
+    id: "q_gi_associated_symptoms_001",
+    category: "hpi",
+    domain: "GASTROINTESTINAL",
+    text: "Are you having vomiting, diarrhea, or blood in stool?",
+    localized_text: {
+      en: "Do you have nausea, loose stools, or vomiting?",
+      hi: "क्या आपको उल्टी, दस्त (पतले दस्त), या खून आने की समस्या है?"
+    },
+    audio_prompt_text: {
+      en: "Select your digestive symptoms.",
+      hi: "पाचन और पेट के लक्षण चुनें।"
+    },
+    input_type: "MULTI_CHOICE",
+    options: [
+      { value: "VOMITING", label: "Vomiting multiple times", localized_label: { en: "Frequent Vomiting", hi: "बार-बार उल्टी होना" } },
+      { value: "WATERY_DIARRHEA", label: "Watery loose stools", localized_label: { en: "Watery Diarrhea", hi: "पानी जैसे पतले दस्त" } },
+      { value: "SEVERE_BLOATING", label: "Severe Gas / Bloating", localized_label: { en: "Severe Gas/Bloating", hi: "पेट फूलना व भारी गैस" } },
+      { value: "BLOOD_IN_STOOL", label: "Blood in Vomit or Stool (Red Flag)", localized_label: { en: "Blood in Stool/Vomit", hi: "उल्टी या मल में खून आना" } },
+      { value: "NONE", label: "None of these", localized_label: { en: "None of these", hi: "इनमें से कोई नहीं" } }
+    ],
+    required: true
+  },
+  {
+    id: "q_joint_location_001",
+    category: "hpi",
+    domain: "MUSCULOSKELETAL",
+    text: "Which joint or body part has pain, stiffness, or swelling?",
+    localized_text: {
+      en: "Which joint or body region is painful?",
+      hi: "शरीर के किस जोड़ या अंग में दर्द, अकड़न या सूजन है?"
+    },
+    audio_prompt_text: {
+      en: "Select the affected joint or body area.",
+      hi: "प्रभावित जोड़ या अंग चुनें।"
+    },
+    input_type: "SINGLE_CHOICE",
+    options: [
+      { value: "KNEE_JOINTS", label: "Knee Joints (One or both)", localized_label: { en: "Knee Joints", hi: "घुटनों का दर्द (एक या दोनों)" } },
+      { value: "LOWER_BACK", label: "Lower Back / Spine (Lumbago)", localized_label: { en: "Lower Back", hi: "कमर व रीढ़ का दर्द" } },
+      { value: "SHOULDER_NECK", label: "Shoulder or Neck", localized_label: { en: "Shoulder / Neck", hi: "कंधा या गर्दन का दर्द" } },
+      { value: "MULTIPLE_SMALL_JOINTS", label: "Fingers / Hands / Multiple joints", localized_label: { en: "Multiple Joints", hi: "हाथ-पैरों की उंगलियां व कई जोड़" } }
+    ],
+    required: true
+  },
+  {
+    id: "q_pain_severity_scale_001",
+    category: "hpi",
+    domain: "PAIN_RELEVANT",
+    text: "On a scale of 0 to 10, how severe is the pain right now?",
+    localized_text: {
+      en: "On a scale of 0 to 10, how severe is your pain?",
+      hi: "0 से 10 के पैमाने पर आपका दर्द कितना तेज है?"
+    },
+    audio_prompt_text: {
+      en: "Select your pain level from 0 no pain to 10 worst pain.",
+      hi: "0 बिना दर्द से 10 सबसे तेज दर्द के बीच अपना स्तर चुनें।"
+    },
+    input_type: "FACES_SCALE",
+    options: [
+      { value: 0, label: "0 - No Pain", localized_label: { en: "0 - No Pain", hi: "0 - कोई दर्द नहीं" } },
+      { value: 2, label: "2 - Mild", localized_label: { en: "2 - Mild", hi: "2 - हल्का दर्द" } },
+      { value: 4, label: "4 - Moderate", localized_label: { en: "4 - Moderate", hi: "4 - मध्यम दर्द" } },
+      { value: 6, label: "6 - Severe", localized_label: { en: "6 - Severe", hi: "6 - तेज दर्द" } },
+      { value: 8, label: "8 - Very Severe", localized_label: { en: "8 - Very Severe", hi: "8 - बहुत तेज दर्द" } },
+      { value: 10, label: "10 - Worst Possible", localized_label: { en: "10 - Worst Possible", hi: "10 - असहनीय दर्द" } }
+    ],
+    required: true
+  },
+  {
+    id: "q_past_medical_history_001",
+    category: "past_history",
+    domain: "ALL",
+    text: "Do you have any existing long-term health conditions?",
+    localized_text: {
+      en: "Do you have any diagnosed chronic diseases?",
+      hi: "क्या आपको पहले से कोई पुरानी बीमारी या समस्या है?"
+    },
+    audio_prompt_text: {
+      en: "Select all conditions that apply to you.",
+      hi: "अपनी पुरानी बीमारियों का चयन करें।"
+    },
+    input_type: "MULTI_CHOICE",
+    options: [
+      { value: "DIABETES", label: "Diabetes (Sugar)", localized_label: { en: "Diabetes", hi: "डायबिटीज (शुगर)" } },
+      { value: "HYPERTENSION", label: "High Blood Pressure (BP)", localized_label: { en: "High Blood Pressure", hi: "हाई ब्लड प्रेशर (बीपी)" } },
+      { value: "HEART_DISEASE", label: "Heart Problem", localized_label: { en: "Heart Disease", hi: "हृदय रोग" } },
+      { value: "ASTHMA", label: "Asthma / Breathing Trouble", localized_label: { en: "Asthma", hi: "दमा / सांस की बीमारी" } },
+      { value: "THYROID", label: "Thyroid", localized_label: { en: "Thyroid", hi: "थायराइड" } },
+      { value: "NONE", label: "No Known Condition", localized_label: { en: "No Known Condition", hi: "कोई पुरानी बीमारी नहीं" } }
+    ],
+    required: true
+  },
+  {
+    id: "q_current_medications_001",
+    category: "medication",
+    domain: "ALL",
+    text: "Are you currently taking any daily medicines?",
+    localized_text: {
+      en: "Are you taking regular prescription medications?",
+      hi: "क्या आप वर्तमान में नियमित रूप से कोई दवाई ले रहे हैं?"
+    },
+    audio_prompt_text: {
+      en: "Tap yes if taking regular medicines.",
+      hi: "यदि आप नियमित दवाई लेते हैं तो हाँ चुनें।"
+    },
+    input_type: "SINGLE_CHOICE",
+    options: [
+      { value: "YES", label: "Yes, taking medicines", localized_label: { en: "Yes, taking medicines", hi: "हाँ, नियमित दवाई ले रहे हैं" } },
+      { value: "NO", label: "No daily medicine", localized_label: { en: "No daily medicine", hi: "नहीं, कोई दवाई नहीं लेते" } }
+    ],
+    required: true
+  },
+  {
+    id: "q_drug_allergies_001",
+    category: "allergy",
+    domain: "ALL",
+    text: "Do you have any known allergy to medicines or foods?",
+    localized_text: {
+      en: "Any known allergy to medications (e.g. Penicillin, Sulfa)?",
+      hi: "क्या आपको किसी दवाई या भोजन से कोई एलर्जी है?"
+    },
+    audio_prompt_text: {
+      en: "Tell us if you have any drug allergy.",
+      hi: "क्या आपको किसी दवाई से एलर्जी है?"
+    },
+    input_type: "SINGLE_CHOICE",
+    options: [
+      { value: "NO_ALLERGY", label: "No Known Allergies", localized_label: { en: "No Known Allergies", hi: "कोई एलर्जी नहीं है" } },
+      { value: "PENICILLIN", label: "Penicillin / Antibiotic Allergy", localized_label: { en: "Penicillin Allergy", hi: "पेनिसिलिन / एंटीबायोटिक एलर्जी" } },
+      { value: "PAINKILLERS", label: "Painkiller (NSAIDs) Allergy", localized_label: { en: "Painkiller Allergy", hi: "दर्द निवारक दवाई से एलर्जी" } },
+      { value: "OTHER", label: "Other Allergy", localized_label: { en: "Other Allergy", hi: "अन्य एलर्जी" } }
+    ],
+    required: true
+  },
+  {
+    id: "q_ayurvedic_prakriti_body_001",
+    category: "ayurvedic",
+    domain: "AYURVEDIC",
+    text: "How would you describe your natural body frame and skin?",
+    localized_text: {
+      en: "How would you describe your body build and skin texture?",
+      hi: "आयुर्वेदिक प्रकृति: आपके शरीर का गठन और त्वचा कैसी रहती है?"
+    },
+    audio_prompt_text: {
+      en: "Choose your natural body build and skin tendency.",
+      hi: "अपने शरीर और त्वचा की प्रकृति चुनें।"
+    },
+    input_type: "SINGLE_CHOICE",
+    options: [
+      { value: "VATA", label: "Thin, lean, dry skin, prefers warmth (Vata)", localized_label: { en: "Thin, dry skin (Vata)", hi: "दुबला शरीर, रूखी त्वचा, ठंड जल्दी लगना (वात)" } },
+      { value: "PITTA", label: "Medium build, warm skin, prone to sweating (Pitta)", localized_label: { en: "Medium, warm skin (Pitta)", hi: "मध्यम शरीर, गर्म त्वचा, पसीना/गर्मी ज्यादा लगना (पित्त)" } },
+      { value: "KAPHA", label: "Broad build, soft/oily skin, gains weight easily (Kapha)", localized_label: { en: "Broad, oily skin (Kapha)", hi: "मजबूत/भारी शरीर, चिकनी त्वचा, वजन जल्दी बढ़ना (कफ)" } }
+    ],
+    required: false
+  },
+  {
+    id: "q_ayurvedic_agni_digestion_001",
+    category: "ayurvedic",
+    domain: "AYURVEDIC",
+    text: "How is your appetite and digestion usually?",
+    localized_text: {
+      en: "How is your appetite and digestion fire (Agni)?",
+      hi: "अग्नि परीक्षा: आपकी भूख और पाचन क्रिया आमतौर पर कैसी रहती है?"
+    },
+    audio_prompt_text: {
+      en: "Select your digestion and appetite pattern.",
+      hi: "अपनी भूख और पाचन की स्थिति चुनें।"
+    },
+    input_type: "SINGLE_CHOICE",
+    options: [
+      { value: "VISHAMAGNI", label: "Irregular / Variable appetite, bloating (Vishamagni)", localized_label: { en: "Variable appetite (Vishamagni)", hi: "कभी ज्यादा भूख, कभी बिल्कुल नहीं / पेट फूलना (विषमाग्नि)" } },
+      { value: "TIKSHNAGNI", label: "Intense hunger, fast digestion, acidity (Tikshnagni)", localized_label: { en: "Intense hunger, acidity (Tikshnagni)", hi: "बहुत तेज भूख, तुरंत पचना, जलन/एसिडिटी (तीक्ष्णाग्नि)" } },
+      { value: "MANDAGNI", label: "Low appetite, slow heavy digestion (Mandagni)", localized_label: { en: "Low appetite, heavy (Mandagni)", hi: "कम भूख लगना, भारीपन महसूस होना (मंदाग्नि)" } },
+      { value: "SAMAGNI", label: "Regular normal balanced digestion (Samagni)", localized_label: { en: "Balanced digestion (Samagni)", hi: "संतुलित और नियमित पाचन (समाग्नि)" } }
+    ],
+    required: false
+  },
+  {
+    id: "q_ayurvedic_koshtha_bowel_001",
+    category: "ayurvedic",
+    domain: "AYURVEDIC",
+    text: "How is your regular bowel habit (Koshtha)?",
+    localized_text: {
+      en: "How are your bowel habits (Koshtha)?",
+      hi: "कोष्ठ परीक्षा: आपका पेट साफ होने की प्रक्रिया कैसी है?"
+    },
+    audio_prompt_text: {
+      en: "Choose your bowel habit type.",
+      hi: "पेट साफ होने की आदत चुनें।"
+    },
+    input_type: "SINGLE_CHOICE",
+    options: [
+      { value: "KRURA", label: "Hard / Constipated, requires laxatives (Krura Koshtha)", localized_label: { en: "Hard, constipated (Krura)", hi: "कब्जियत, कठिनाई से पेट साफ होना (क्रूर कोष्ठ)" } },
+      { value: "MRIDU", label: "Soft / Loose, easily affected by milk (Mridu Koshtha)", localized_label: { en: "Soft, loose easily (Mridu)", hi: "जल्दी दस्त होना, दूध से भी पेट साफ होना (मृदु कोष्ठ)" } },
+      { value: "MADHYAMA", label: "Normal, once or twice daily without effort (Madhyama)", localized_label: { en: "Normal regular (Madhyama)", hi: "सामान्य, दिन में 1-2 बार आसानी से (मध्यम कोष्ठ)" } }
+    ],
+    required: false
+  }
+];
+
+// Offline state tracker
+let clientSession = {
+  chiefComplaint: '',
+  answeredIds: [] as string[],
+  language: 'hi'
+};
+
+function formatClientQuestion(q: any, lang: string) {
+  if (!q) return null;
+  const loc = q.localized_text?.[lang] || q.localized_text?.en || q.text;
+  const audio = q.audio_prompt_text?.[lang] || q.audio_prompt_text?.en || loc;
+  const opts = (q.options || []).map((o: any) => ({
+    value: o.value,
+    label: o.localized_label?.[lang] || o.localized_label?.en || o.label
+  }));
+
+  return {
+    id: q.id,
+    category: q.category,
+    domain: q.domain,
+    text: q.text,
+    localized_text: loc,
+    audio_prompt_text: audio,
+    input_type: q.input_type,
+    required: q.required ?? true,
+    options: opts
+  };
+}
+
+function getClientNextQuestion(answeredIds: string[], chief: string, lang: string) {
+  const t = (chief || '').toLowerCase();
+  let plan: string[] = ['q_chief_complaint_001', 'q_symptom_duration_001'];
+
+  if (['chest', 'heart', 'सीने', 'छाती', 'धड़कन', 'घबराहट', 'angina', 'cardiac'].some(k => t.includes(k))) {
+    plan.push('q_chestpain_location_001', 'q_associated_symptoms_cardiac_001', 'q_pain_severity_scale_001');
+  } else if (['fever', 'बुखार', 'खांसी', 'cough', 'cold', 'जुकाम', 'breath', 'सांस', 'throat', 'गले'].some(k => t.includes(k))) {
+    plan.push('q_fever_characteristics_001', 'q_respiratory_symptoms_001');
+  } else if (['stomach', 'पेट', 'abdomen', 'उल्टी', 'vomit', 'दस्त', 'loose motion', 'diarrhea', 'acidity', 'gas'].some(k => t.includes(k))) {
+    plan.push('q_gi_pain_location_001', 'q_gi_associated_symptoms_001', 'q_pain_severity_scale_001');
+  } else if (['joint', 'घुटने', 'knee', 'back', 'कमर', 'पीठ', 'shoulder', 'जोड़ों', 'दर्द'].some(k => t.includes(k))) {
+    plan.push('q_joint_location_001', 'q_pain_severity_scale_001');
+  } else {
+    plan.push('q_pain_severity_scale_001');
+  }
+
+  plan.push(
+    'q_past_medical_history_001',
+    'q_current_medications_001',
+    'q_drug_allergies_001',
+    'q_ayurvedic_prakriti_body_001',
+    'q_ayurvedic_agni_digestion_001',
+    'q_ayurvedic_koshtha_bowel_001'
+  );
+
+  for (const qid of plan) {
+    if (!answeredIds.includes(qid)) {
+      const qObj = OFFLINE_QUESTIONS.find(q => q.id === qid);
+      if (qObj) return { question: formatClientQuestion(qObj, lang), plan };
+    }
+  }
+
+  return { question: null, plan };
+}
+
 export const KioskAPI = {
   async registerPatient(data: {
     first_name: string;
@@ -23,7 +440,7 @@ export const KioskAPI = {
     } catch (e) {
       console.warn('Backend offline, using local patient session', e);
     }
-    // Local fallback
+    // Resilient local fallback
     return {
       id: `pat_${Date.now()}`,
       hospital_patient_id: `HOSP-2026-${Math.floor(100000 + Math.random() * 900000)}`,
@@ -87,6 +504,12 @@ export const KioskAPI = {
   },
 
   async startInterview(encounterId: string, language: string = 'hi') {
+    clientSession = {
+      chiefComplaint: '',
+      answeredIds: [],
+      language
+    };
+
     try {
       const res = await fetch(`${API_BASE_URL}/encounters/${encounterId}/interviews`, {
         method: 'POST',
@@ -104,21 +527,23 @@ export const KioskAPI = {
     } catch (e) {
       console.warn('Interview start offline', e);
     }
+
+    const firstQ = OFFLINE_QUESTIONS.find(q => q.id === 'q_chief_complaint_001');
     return {
       interview_id: `int_${Date.now()}`,
       status: 'IN_PROGRESS',
-      current_question: {
-        id: 'q_chief_complaint_001',
-        text: 'What problem brings you to the hospital today?',
-        localized_text: language === 'hi' ? 'आज आपको अस्पताल किस समस्या के लिए आना पड़ा है?' : 'What problem brings you to the hospital today?',
-        audio_prompt_text: language === 'hi' ? 'कृपया अपनी मुख्य तकलीफ बताएं।' : 'Please describe your health issue.',
-        input_type: 'VOICE_OR_TEXT',
-        required: true
-      }
+      current_question: formatClientQuestion(firstQ, language)
     };
   },
 
   async submitAnswer(interviewId: string, questionId: string, rawText: string, normalized?: any) {
+    if (questionId === 'q_chief_complaint_001') {
+      clientSession.chiefComplaint = rawText;
+    }
+    if (!clientSession.answeredIds.includes(questionId)) {
+      clientSession.answeredIds.push(questionId);
+    }
+
     try {
       const res = await fetch(`${API_BASE_URL}/interviews/${interviewId}/responses`, {
         method: 'POST',
@@ -136,13 +561,39 @@ export const KioskAPI = {
         return json.data;
       }
     } catch (e) {
-      console.warn('Submit answer offline', e);
+      console.warn('Submit answer offline fallback', e);
     }
+
+    // Dynamic offline branching fallback
+    const { question: nextQ, plan } = getClientNextQuestion(
+      clientSession.answeredIds,
+      clientSession.chiefComplaint,
+      clientSession.language
+    );
+
+    const progressPct = Math.min(100, Math.round((clientSession.answeredIds.length / plan.length) * 100));
+
+    // Client-side red flag evaluator
+    const alerts: any[] = [];
+    const t = (clientSession.chiefComplaint + ' ' + rawText).toLowerCase();
+    if (['chest', 'heart', 'सीने', 'दर्द'].some(k => t.includes(k)) && (t.includes('left') || t.includes('arm') || t.includes('sweat') || t.includes('breath') || Number(rawText) >= 7)) {
+      alerts.push({
+        rule_id: 'CARDIAC_001',
+        alert_type: 'RED_FLAG_CARDIAC',
+        severity: 'CRITICAL',
+        triggered_symptoms: ['Chest pain', 'Severe pain scale'],
+        suggested_action: 'Immediate 12-lead ECG and emergency triage referral'
+      });
+    }
+
     return {
       response_id: `resp_${Date.now()}`,
-      interview_progress: 50,
-      next_question: null,
-      red_flag_check: { status: 'NO_ALERT' }
+      interview_progress: progressPct,
+      next_question: nextQ,
+      red_flag_check: {
+        status: alerts.length > 0 ? 'ALERT_TRIGGERED' : 'NO_ALERT',
+        alerts
+      }
     };
   },
 

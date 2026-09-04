@@ -94,14 +94,14 @@ def submit_response(interview_id: str, payload: InterviewResponseSubmit, db: Ses
             encounter.priority = "EMERGENCY" if rf["severity"] == "CRITICAL" else "PRIORITY"
             db.commit()
 
-    # Get Next Adaptive Question
+    # Get Next Adaptive Question based on patient's chief complaint domain
     next_question = engine.get_next_question(
         answered_question_ids=answered_ids,
-        last_answer={"question_id": payload.question_id, "raw_text": payload.raw_text},
+        chief_complaint=chief_text,
         language=session.language_used or "hi"
     )
 
-    progress_pct = min(100, int((len(answered_ids) / 8) * 100))
+    progress_pct = engine.calculate_progress(answered_ids, chief_text)
 
     return StandardResponse(
         success=True,

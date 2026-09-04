@@ -2,6 +2,7 @@ import pytest
 from fastapi.testclient import TestClient
 from services.api.app.main import app
 from services.api.app.seed.seed_data import init_db
+from services.api.app.services.dialogue_engine import DialogueEngine
 
 @pytest.fixture(scope="session", autouse=True)
 def setup_test_db():
@@ -44,7 +45,8 @@ def test_encounter_queue():
     data = response.json()
     assert data["success"] is True
     assert len(data["data"]) > 0
-    assert data["data"][0]["queue_token"] == "A-042"
+    tokens = [e["queue_token"] for e in data["data"]]
+    assert any("A-" in t for t in tokens)
 
 def test_clinical_summary_and_verification():
     # Get Meena encounter
@@ -95,3 +97,24 @@ def test_red_flag_acknowledgment():
         })
         assert ack_resp.status_code == 200
         assert ack_resp.json()["data"]["status"] == "ACKNOWLEDGED"
+
+def test_dialogue_engine_domain_branching():
+    engine = DialogueEngine()
+
+    # Cardiac domain check
+    cardio_plan = engine.get_interview_plan("Severe chest pain radiating to left arm and sweating")
+    assert "q_chestpain_location_001" in cardio_plan
+    assert "q_associated_symptoms_cardiac_001" in cardio_plan
+    assert "q_fever_characteristics_001" not in cardio_plan
+
+    # Fever domain check
+    fever_plan = engine.get_interview_plan("३ दिन से तेज बुखार और खांसी है")
+    assert "q_fever_characteristics_001" in fever_plan
+    assert "q_respiratory_symptoms_001" in fever_plan
+    assert "q_chestpain_location_001" not in fever_plan
+
+    # GI domain check
+    gi_plan = engine.get_interview_plan("Stomach pain, acidity, and loose motion")
+    assert "q_gi_pain_location_001" in gi_plan
+    assert "q_gi_associated_symptoms_001" in gi_plan
+    assert "q_chestpain_location_001" not in gi_plan

@@ -21,6 +21,38 @@ def create_patient(payload: PatientCreate, db: Session = Depends(get_db)):
         else:
             masked_abha = payload.abha_number
 
+    # Check if patient already exists by ABHA or Phone to prevent uniqueness constraint errors
+    existing_patient = None
+    if payload.abha_number:
+        existing_patient = db.query(Patient).filter(Patient.abha_number == payload.abha_number).first()
+    if not existing_patient and payload.phone:
+        existing_patient = db.query(Patient).filter(
+            Patient.phone == payload.phone,
+            Patient.first_name.ilike(payload.first_name)
+        ).first()
+
+    if existing_patient:
+        if payload.preferred_language:
+            existing_patient.preferred_language = payload.preferred_language
+        if payload.last_name and not existing_patient.last_name:
+            existing_patient.last_name = payload.last_name
+        db.commit()
+        db.refresh(existing_patient)
+        return StandardResponse(
+            success=True,
+            data={
+                "id": existing_patient.id,
+                "hospital_patient_id": existing_patient.hospital_patient_id,
+                "abha_number_masked": existing_patient.abha_number_masked,
+                "full_name": f"{existing_patient.first_name} {existing_patient.last_name or ''}".strip(),
+                "date_of_birth": existing_patient.date_of_birth,
+                "gender": existing_patient.gender,
+                "phone": existing_patient.phone,
+                "preferred_language": existing_patient.preferred_language,
+                "created_at": existing_patient.created_at.isoformat() if existing_patient.created_at else datetime.now().isoformat()
+            }
+        )
+
     patient = Patient(
         abha_number=payload.abha_number,
         abha_number_masked=masked_abha,

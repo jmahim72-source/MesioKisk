@@ -2,11 +2,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   Mic, MicOff, Volume2, ShieldCheck, HeartPulse, User, CheckCircle2,
   AlertTriangle, ArrowRight, ArrowLeft, RefreshCw, FileText, Upload,
-  Clock, Sparkles, Building2, Eye, EyeOff, Lock
+  Clock, Sparkles, Building2, Eye, EyeOff, Lock, Stethoscope, Sparkle
 } from 'lucide-react';
 import { KioskAPI } from './services/api';
 
-type Step = 'LANGUAGE' | 'CONSENT' | 'IDENTIFICATION' | 'INTERVIEW' | 'AYURVEDIC' | 'DOCUMENTS' | 'TICKET';
+type Step = 'LANGUAGE' | 'CONSENT' | 'IDENTIFICATION' | 'INTERVIEW' | 'DOCUMENTS' | 'TICKET';
 
 export function App() {
   const [lang, setLang] = useState<'hi' | 'en'>('hi');
@@ -33,11 +33,6 @@ export function App() {
   const [isListening, setIsListening] = useState<boolean>(false);
   const [redFlags, setRedFlags] = useState<any[]>([]);
   const [progress, setProgress] = useState<number>(10);
-
-  // Ayurvedic state
-  const [prakriti, setPrakriti] = useState<string>('VATA_PITTA');
-  const [agni, setAgni] = useState<string>('VISHAMAGNI');
-  const [koshtha, setKoshtha] = useState<string>('KRURA');
 
   // Documents state
   const [uploadedFiles, setUploadedFiles] = useState<Array<{ name: string; type: string; status: string }>>([]);
@@ -119,6 +114,7 @@ export function App() {
     setRedFlags([]);
     setUploadedFiles([]);
     setStep('LANGUAGE');
+    setProgress(10);
     setShowIdleModal(false);
     if ('speechSynthesis' in window) window.speechSynthesis.cancel();
   };
@@ -192,13 +188,14 @@ export function App() {
     setPatientId(pData.id);
     await KioskAPI.recordConsent(pData.id, lang);
 
-    const enc = await KioskAPI.createEncounter(pData.id, 'Chest pain and breathlessness');
+    const enc = await KioskAPI.createEncounter(pData.id, 'Clinical Intake');
     setEncounterId(enc.encounter_id);
     setQueueToken(enc.queue_token || 'A-042');
 
     const iv = await KioskAPI.startInterview(enc.encounter_id, lang);
     setInterviewId(iv.interview_id);
     setCurrentQuestion(iv.current_question);
+    setProgress(15);
     setStep('INTERVIEW');
 
     if (iv.current_question?.localized_text) {
@@ -214,7 +211,7 @@ export function App() {
     setAnswers((prev) => ({ ...prev, [qid]: text }));
 
     const res = await KioskAPI.submitAnswer(interviewId, qid, text);
-    setProgress(res.interview_progress || progress + 15);
+    setProgress(res.interview_progress || progress + 12);
 
     if (res.red_flag_check?.alerts?.length > 0) {
       setRedFlags(res.red_flag_check.alerts);
@@ -228,15 +225,14 @@ export function App() {
         playAudio(res.next_question.localized_text);
       }
     } else {
-      // Move to Ayurvedic Mode
-      setStep('AYURVEDIC');
-      playAudio(lang === 'hi' ? 'अब कृपया अपनी आयुर्वेदिक प्रकृति और पाचन का विवरण चुनें।' : 'Now please select your Ayurvedic constitution and digestion profile.');
+      // Questions Complete -> Move to Document Upload & Token Generation
+      setStep('DOCUMENTS');
+      playAudio(
+        lang === 'hi'
+          ? 'प्रश्नावली पूरी हो गई है। यदि आपके पास पुराने पर्चे या जांच रिपोर्ट हैं तो कृपया अपलोड करें।'
+          : 'Interview completed. Please upload any previous prescriptions or test reports.'
+      );
     }
-  };
-
-  const handleAyurvedicSubmit = () => {
-    setStep('DOCUMENTS');
-    playAudio(lang === 'hi' ? 'कृपया अपने पुराने पर्चे या जांच रिपोर्ट अपलोड करें।' : 'Please upload any prior prescriptions or lab reports.');
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, docType: string) => {
@@ -258,6 +254,34 @@ export function App() {
         ? `आपका टोकन नंबर है ${queueToken}। कृपया प्रतीक्षा क्षेत्र में बैठें।`
         : `Your queue token number is ${queueToken}. Please take your seat in the waiting area.`
     );
+  };
+
+  const getCategoryBadge = (category: string) => {
+    switch ((category || '').toLowerCase()) {
+      case 'chief_complaint':
+        return { text: lang === 'hi' ? '🚨 मुख्य समस्या' : '🚨 Chief Complaint', color: '#ef4444' };
+      case 'hpi':
+        return { text: lang === 'hi' ? '📋 लक्षण विवरण' : '📋 Symptom Details', color: '#0d9488' };
+      case 'past_history':
+        return { text: lang === 'hi' ? '🩺 पूर्व स्वास्थ्य इतिहास' : '🩺 Medical History', color: '#6366f1' };
+      case 'medication':
+        return { text: lang === 'hi' ? '💊 नियमित दवाइयां' : '💊 Regular Medications', color: '#f59e0b' };
+      case 'allergy':
+        return { text: lang === 'hi' ? '⚠️ एलर्जी की जांच' : '⚠️ Allergy Safety', color: '#dc2626' };
+      case 'ayurvedic':
+        return { text: lang === 'hi' ? '🌿 दशविध परीक्षा (आयुर्वेद)' : '🌿 Ayurvedic Profile', color: '#10b981' };
+      default:
+        return { text: lang === 'hi' ? 'स्वास्थ्य विवरण' : 'Clinical Intake', color: '#0d9488' };
+    }
+  };
+
+  const getFaceEmoji = (val: number) => {
+    if (val === 0) return '😄';
+    if (val <= 2) return '🙂';
+    if (val <= 4) return '😐';
+    if (val <= 6) return '😣';
+    if (val <= 8) return '😫';
+    return '😭';
   };
 
   return (
@@ -350,43 +374,47 @@ export function App() {
       {/* STEP 2: CONSENT */}
       {step === 'CONSENT' && (
         <div className="glass-card">
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '20px' }}>
+            <ShieldCheck size={36} color="var(--primary)" />
             <h2 style={{ fontSize: '28px', fontWeight: '800' }}>
-              {lang === 'hi' ? '📋 डिजिटल स्वास्थ्य सहमति (Consent)' : '📋 Digital Health Intake Consent'}
+              {lang === 'hi' ? 'डिजिटल स्वास्थ्य सहमति (DPDP Consent)' : 'Digital Health Intake Consent'}
             </h2>
-            <button
-              className="btn btn-secondary"
-              onClick={() => playAudio(lang === 'hi' ? 'आपकी जानकारी केवल डॉक्टर के परामर्श हेतु उपयोग होगी।' : 'Your health information is confidential and will only be shared with your attending doctor.')}
-            >
-              <Volume2 size={22} />
-              <span>{lang === 'hi' ? 'सुनें' : 'Listen'}</span>
-            </button>
           </div>
 
-          <div style={{ background: '#f8fafc', padding: '24px', borderRadius: '16px', border: '1px solid var(--border-color)', marginBottom: '30px', fontSize: '18px', lineHeight: '1.7' }}>
-            <p style={{ marginBottom: '14px' }}>
-              {lang === 'hi'
-                ? '१. मैं अपनी स्वास्थ्य समस्या, पिछली दवाइयों और लक्षणों को डॉक्टर परामर्श से पूर्व दर्ज करने की सहमति देता/देती हूँ।'
-                : '1. I give explicit consent to record my clinical complaints, medication history, and symptoms prior to physician consultation.'}
-            </p>
-            <p style={{ marginBottom: '14px' }}>
-              {lang === 'hi'
-                ? '२. मेरी जानकारी आयुष्मान भारत डिजिटल मिशन (ABDM) व अस्पताल ईएचआर में सुरक्षित रखी जाएगी।'
-                : '2. My health data will be safely processed in compliance with DPDP Act 2023 and ABDM standards.'}
-            </p>
-            <p style={{ color: 'var(--primary-dark)', fontWeight: '700' }}>
-              {lang === 'hi'
-                ? '३. AI द्वारा केवल सारांश तैयार किया जाएगा, अंतिम निर्णय डॉक्टर का होगा।'
-                : '3. AI only prepares a draft summary; final clinical diagnosis is verified by the consulting doctor.'}
-            </p>
+          <div style={{ background: '#f8fafc', padding: '24px', borderRadius: '16px', border: '1px solid var(--border-color)', marginBottom: '24px', fontSize: '18px', lineHeight: '1.6' }}>
+            {lang === 'hi' ? (
+              <>
+                <p style={{ marginBottom: '12px' }}>
+                  <strong>उद्देश्य:</strong> इस कियोस्क का उपयोग आपके लक्षणों और स्वास्थ्य इतिहास को संकलित करने के लिए किया जा रहा है ताकि डॉक्टर को आपकी जांच में सहायता मिल सके।
+                </p>
+                <p style={{ marginBottom: '12px' }}>
+                  <strong>गोपनीयता सुरक्षा:</strong> आपका डेटा डिजिटल पर्सनल डेटा प्रोटेक्शन (DPDP) अधिनियम 2023 के तहत पूर्णतः सुरक्षित व एन्क्रिप्टेड है।
+                </p>
+                <p>
+                  <strong>सहमति:</strong> क्या आप अपनी स्वास्थ्य जानकारी दर्ज करने की अनुमति देते हैं?
+                </p>
+              </>
+            ) : (
+              <>
+                <p style={{ marginBottom: '12px' }}>
+                  <strong>Purpose:</strong> This kiosk collects your symptoms and health history to help your attending doctor conduct a faster and more accurate clinical review.
+                </p>
+                <p style={{ marginBottom: '12px' }}>
+                  <strong>Privacy:</strong> All collected data is processed under the DPDP Act 2023 with strict encryption.
+                </p>
+                <p>
+                  <strong>Consent:</strong> Do you agree to proceed with this assisted clinical intake?
+                </p>
+              </>
+            )}
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: '20px' }}>
             <button className="btn btn-secondary btn-lg" onClick={() => setStep('LANGUAGE')}>
               <ArrowLeft size={24} /> {lang === 'hi' ? 'पीछे' : 'Back'}
             </button>
             <button className="btn btn-primary btn-lg" onClick={handleAcceptConsent}>
-              <CheckCircle2 size={24} /> {lang === 'hi' ? 'मैं सहमत हूँ (I Agree)' : 'I Consent & Proceed'}
+              <CheckCircle2 size={24} /> {lang === 'hi' ? 'हाँ, मैं सहमत हूँ (Agree & Continue)' : 'I Agree & Proceed'}
             </button>
           </div>
         </div>
@@ -395,17 +423,16 @@ export function App() {
       {/* STEP 3: PATIENT IDENTIFICATION */}
       {step === 'IDENTIFICATION' && (
         <div className="glass-card">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
             <h2 style={{ fontSize: '28px', fontWeight: '800' }}>
-              {lang === 'hi' ? '👤 मरीज की पहचान (Patient Identification)' : '👤 Patient Identification'}
+              {lang === 'hi' ? 'रोगी की पहचान (Patient Details)' : 'Patient Identification'}
             </h2>
-            <button className="btn btn-secondary" onClick={loadMeenaDemo} style={{ background: '#ecfdf5', borderColor: 'var(--primary)', color: 'var(--primary-dark)' }}>
-              <Sparkles size={20} />
-              <span>{lang === 'hi' ? '✨ डेमो मरीज भरें (Meena Devi)' : '✨ Auto-fill Demo (Meena Devi)'}</span>
+            <button className="btn btn-secondary" onClick={loadMeenaDemo}>
+              ⚡ {lang === 'hi' ? 'डेमो मरीज लोड करें (Meena Devi)' : 'Load Demo (Meena Devi)'}
             </button>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '24px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
             <div>
               <label style={{ display: 'block', fontWeight: '700', marginBottom: '8px', fontSize: '18px' }}>
                 {lang === 'hi' ? 'पहला नाम (First Name) *' : 'First Name *'}
@@ -434,7 +461,7 @@ export function App() {
 
             <div>
               <label style={{ display: 'block', fontWeight: '700', marginBottom: '8px', fontSize: '18px' }}>
-                {lang === 'hi' ? 'मोबाइल नंबर (Mobile Number) *' : 'Mobile Number *'}
+                {lang === 'hi' ? 'मोबाइल नंबर (Phone Number) *' : 'Phone Number *'}
               </label>
               <input
                 type="tel"
@@ -478,8 +505,18 @@ export function App() {
             <div className="progress-bar" style={{ width: `${progress}%` }}></div>
           </div>
 
+          {/* Category Chip Badge */}
+          {(() => {
+            const badge = getCategoryBadge(currentQuestion.category);
+            return (
+              <div style={{ display: 'inline-block', background: `${badge.color}18`, color: badge.color, padding: '6px 14px', borderRadius: '20px', fontWeight: '700', fontSize: '14px', marginBottom: '14px' }}>
+                {badge.text}
+              </div>
+            );
+          })()}
+
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
-            <h2 style={{ fontSize: '26px', fontWeight: '800', maxWidth: '80%' }}>
+            <h2 style={{ fontSize: '26px', fontWeight: '800', maxWidth: '85%', lineHeight: '1.4' }}>
               {currentQuestion.localized_text || currentQuestion.text}
             </h2>
 
@@ -492,7 +529,7 @@ export function App() {
             </button>
           </div>
 
-          {/* Voice Input Section */}
+          {/* Voice & Text Input Section */}
           <div style={{ background: '#f8fafc', padding: '24px', borderRadius: '18px', border: '2px dashed var(--primary)', marginBottom: '24px', textAlign: 'center' }}>
             <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', marginBottom: '16px' }}>
               <button
@@ -516,16 +553,34 @@ export function App() {
             )}
 
             <textarea
-              rows={3}
+              rows={2}
               value={answerInput}
               onChange={(e) => setAnswerInput(e.target.value)}
-              placeholder={lang === 'hi' ? 'अपनी बात बोलें या यहाँ लिखें (उदा. सुबह से सीने में दर्द और सांस फूल रही है)...' : 'Speak or type your answer here...'}
+              placeholder={lang === 'hi' ? 'अपनी बात बोलें या यहाँ लिखें (उदा. 3 दिन से तेज बुखार है)...' : 'Speak or type your answer here...'}
               style={{ width: '100%', padding: '14px', fontSize: '20px', borderRadius: '12px', border: '1px solid var(--border-color)', resize: 'none' }}
             />
           </div>
 
+          {/* FACES SCALE FOR PAIN */}
+          {currentQuestion.input_type === 'FACES_SCALE' && currentQuestion.options && (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '14px', marginBottom: '24px' }}>
+              {currentQuestion.options.map((opt: any, idx: number) => (
+                <button
+                  key={idx}
+                  className="option-card"
+                  style={{ textAlign: 'center', flexDirection: 'column', gap: '8px', padding: '18px 12px' }}
+                  onClick={() => handleAnswerSubmit(String(opt.value))}
+                >
+                  <span style={{ fontSize: '36px' }}>{getFaceEmoji(Number(opt.value))}</span>
+                  <strong style={{ fontSize: '18px' }}>{opt.value}/10</strong>
+                  <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{opt.label}</span>
+                </button>
+              ))}
+            </div>
+          )}
+
           {/* Quick Option Cards if present */}
-          {currentQuestion.options && currentQuestion.options.length > 0 && (
+          {currentQuestion.input_type !== 'FACES_SCALE' && currentQuestion.options && currentQuestion.options.length > 0 && (
             <div className="option-grid">
               {currentQuestion.options.map((opt: any, idx: number) => (
                 <button
@@ -551,64 +606,7 @@ export function App() {
         </div>
       )}
 
-      {/* STEP 5: AYURVEDIC MODULE */}
-      {step === 'AYURVEDIC' && (
-        <div className="glass-card">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-            <h2 style={{ fontSize: '28px', fontWeight: '800' }}>
-              🌿 {lang === 'hi' ? 'दशविध परीक्षा (Ayurvedic Intake)' : 'Ayurvedic Assessment (Dashavidha Pariksha)'}
-            </h2>
-            <button className="btn btn-secondary" onClick={() => playAudio(lang === 'hi' ? 'अपनी प्रकृति और अग्नि का चयन करें।' : 'Please select your Ayurvedic dosha constitution and digestion power.')}>
-              <Volume2 size={22} />
-            </button>
-          </div>
-
-          <div style={{ marginBottom: '24px' }}>
-            <label style={{ display: 'block', fontWeight: '700', fontSize: '20px', marginBottom: '10px' }}>
-              १. प्रकृति (Body Constitution / Prakriti):
-            </label>
-            <div className="option-grid">
-              <div className={`option-card ${prakriti === 'VATA_PITTA' ? 'selected' : ''}`} onClick={() => setPrakriti('VATA_PITTA')}>
-                <span>वात-पित्त (Vata-Pitta - Lean, Warm)</span>
-              </div>
-              <div className={`option-card ${prakriti === 'PITTA_KAPHA' ? 'selected' : ''}`} onClick={() => setPrakriti('PITTA_KAPHA')}>
-                <span>पित्त-कफ (Pitta-Kapha - Medium, Oily)</span>
-              </div>
-              <div className={`option-card ${prakriti === 'KAPHA' ? 'selected' : ''}`} onClick={() => setPrakriti('KAPHA')}>
-                <span>कफ प्रधान (Kapha - Heavy, Calm)</span>
-              </div>
-            </div>
-          </div>
-
-          <div style={{ marginBottom: '24px' }}>
-            <label style={{ display: 'block', fontWeight: '700', fontSize: '20px', marginBottom: '10px' }}>
-              २. अग्नि / पाचन शक्ति (Digestive Fire / Agni):
-            </label>
-            <div className="option-grid">
-              <div className={`option-card ${agni === 'VISHAMAGNI' ? 'selected' : ''}`} onClick={() => setAgni('VISHAMAGNI')}>
-                <span>विषमाग्नि (Vishamagni - Irregular appetite)</span>
-              </div>
-              <div className={`option-card ${agni === 'TIKSHNAGNI' ? 'selected' : ''}`} onClick={() => setAgni('TIKSHNAGNI')}>
-                <span>तीक्ष्णाग्नि (Tikshnagni - High acidity)</span>
-              </div>
-              <div className={`option-card ${agni === 'SAMAGNI' ? 'selected' : ''}`} onClick={() => setAgni('SAMAGNI')}>
-                <span>समाग्नि (Samagni - Balanced digestion)</span>
-              </div>
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '30px' }}>
-            <button className="btn btn-secondary btn-lg" onClick={() => setStep('INTERVIEW')}>
-              <ArrowLeft size={24} /> {lang === 'hi' ? 'पीछे' : 'Back'}
-            </button>
-            <button className="btn btn-primary btn-lg" onClick={handleAyurvedicSubmit}>
-              {lang === 'hi' ? 'दस्तावेज अपलोड करें' : 'Proceed to Documents'} <ArrowRight size={24} />
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* STEP 6: DOCUMENTS UPLOAD */}
+      {/* STEP 5: DOCUMENTS UPLOAD */}
       {step === 'DOCUMENTS' && (
         <div className="glass-card">
           <h2 style={{ fontSize: '28px', fontWeight: '800', marginBottom: '10px' }}>
@@ -656,7 +654,7 @@ export function App() {
           )}
 
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '30px' }}>
-            <button className="btn btn-secondary btn-lg" onClick={() => setStep('AYURVEDIC')}>
+            <button className="btn btn-secondary btn-lg" onClick={() => setStep('INTERVIEW')}>
               <ArrowLeft size={24} /> {lang === 'hi' ? 'पीछे' : 'Back'}
             </button>
             <button className="btn btn-primary btn-lg" onClick={handleFinalSubmit}>
@@ -666,7 +664,7 @@ export function App() {
         </div>
       )}
 
-      {/* STEP 7: QUEUE TOKEN & TICKET */}
+      {/* STEP 6: QUEUE TOKEN & TICKET */}
       {step === 'TICKET' && (
         <div className="glass-card" style={{ textAlign: 'center', padding: '50px 30px' }}>
           <CheckCircle2 size={72} color="var(--success)" style={{ margin: '0 auto 16px' }} />

@@ -3,6 +3,7 @@
     "id": "q_chief_complaint_001",
     "category": "chief_complaint",
     "section": "general",
+    "domain": "ALL",
     "text": "What problem brings you to the hospital today?",
     "localized_text": {
       "en": "What problem brings you to the hospital today?",
@@ -19,6 +20,7 @@
     "id": "q_symptom_duration_001",
     "category": "hpi",
     "section": "general",
+    "domain": "ALL",
     "text": "Since how many days or weeks have you been having this problem?",
     "localized_text": {
       "en": "Since how long have you been experiencing this issue?",
@@ -37,13 +39,15 @@
     ],
     "required": true
   },
+
   {
     "id": "q_chestpain_location_001",
     "category": "hpi",
     "section": "cardiovascular",
+    "domain": "CARDIOVASCULAR",
     "text": "Where exactly do you feel the chest discomfort or pain?",
     "localized_text": {
-      "en": "Where exactly do you feel the pain or pressure?",
+      "en": "Where exactly do you feel the pain or pressure in your chest?",
       "hi": "सीने में दर्द या भारीपन किस जगह पर महसूस हो रहा है?"
     },
     "audio_prompt_text": {
@@ -57,12 +61,13 @@
       { "value": "RIGHT_SIDE", "label": "Right Side", "localized_label": { "en": "Right Side", "hi": "दाईं तरफ" } },
       { "value": "UPPER_ABDOMEN", "label": "Upper Stomach / Gastric", "localized_label": { "en": "Upper Stomach", "hi": "पेट के ऊपरी हिस्से में" } }
     ],
-    "required": false
+    "required": true
   },
   {
     "id": "q_associated_symptoms_cardiac_001",
     "category": "hpi",
     "section": "cardiovascular",
+    "domain": "CARDIOVASCULAR",
     "text": "Are you also experiencing any of these symptoms right now?",
     "localized_text": {
       "en": "Do you have breathlessness, cold sweating, or nausea?",
@@ -82,10 +87,132 @@
     ],
     "required": true
   },
+
+  {
+    "id": "q_fever_characteristics_001",
+    "category": "hpi",
+    "section": "respiratory_fever",
+    "domain": "RESPIRATORY_FEVER",
+    "text": "How severe is the fever and are you experiencing chills or shivering?",
+    "localized_text": {
+      "en": "How is the fever pattern and are you shivering?",
+      "hi": "बुखार की तीव्रता कैसी है और क्या ठंड लगकर कंपकंपी छूट रही है?"
+    },
+    "audio_prompt_text": {
+      "en": "Select the fever characteristics.",
+      "hi": "बुखार का प्रकार चुनें।"
+    },
+    "input_type": "SINGLE_CHOICE",
+    "options": [
+      { "value": "HIGH_WITH_CHILLS", "label": "High fever with chills & shivering", "localized_label": { "en": "High fever with chills", "hi": "तेज बुखार व ठंड लगना" } },
+      { "value": "MODERATE_CONTINUOUS", "label": "Moderate continuous fever", "localized_label": { "en": "Continuous moderate fever", "hi": "हल्का-मध्यम लगातार बुखार" } },
+      { "value": "EVENING_RISE", "label": "Rises mainly in the evening/night", "localized_label": { "en": "Evening rise fever", "hi": "शाम या रात में बुखार बढ़ना" } },
+      { "value": "NO_FEVER_NOW", "label": "Fever resolved, only weakness", "localized_label": { "en": "No fever currently", "hi": "अब बुखार नहीं, केवल कमजोरी" } }
+    ],
+    "required": true
+  },
+  {
+    "id": "q_respiratory_symptoms_001",
+    "category": "hpi",
+    "section": "respiratory_fever",
+    "domain": "RESPIRATORY_FEVER",
+    "text": "Do you have cough, sore throat, or difficulty breathing?",
+    "localized_text": {
+      "en": "Select any breathing or cough symptoms you have.",
+      "hi": "क्या आपको खांसी, कफ, गले में खराश या सांस लेने में परेशानी है?"
+    },
+    "audio_prompt_text": {
+      "en": "Choose your cough and breathing symptoms.",
+      "hi": "खांसी व सांस के लक्षण चुनें।"
+    },
+    "input_type": "MULTI_CHOICE",
+    "options": [
+      { "value": "DRY_COUGH", "label": "Dry Cough", "localized_label": { "en": "Dry Cough", "hi": "सूखी खांसी" } },
+      { "value": "PRODUCTIVE_COUGH", "label": "Cough with Sputum / Mucus", "localized_label": { "en": "Cough with Sputum", "hi": "बलगम वाली खांसी" } },
+      { "value": "BREATH_SHORTNESS", "label": "Shortness of Breath on Exertion", "localized_label": { "en": "Shortness of Breath", "hi": "सांस फूलना" } },
+      { "value": "SORE_THROAT", "label": "Sore Throat / Difficulty Swallowing", "localized_label": { "en": "Sore Throat", "hi": "गले में खराश / दर्द" } },
+      { "value": "NONE", "label": "None of these", "localized_label": { "en": "None of these", "hi": "इनमें से कोई नहीं" } }
+    ],
+    "required": true
+  },
+
+  {
+    "id": "q_gi_pain_location_001",
+    "category": "hpi",
+    "section": "gastrointestinal",
+    "domain": "GASTROINTESTINAL",
+    "text": "Where is the abdominal discomfort or stomach pain located?",
+    "localized_text": {
+      "en": "Where is the stomach pain located?",
+      "hi": "पेट में दर्द या असहजता किस हिस्से में हो रही है?"
+    },
+    "audio_prompt_text": {
+      "en": "Select the location of your stomach pain.",
+      "hi": "पेट दर्द का स्थान चुनें।"
+    },
+    "input_type": "SINGLE_CHOICE",
+    "options": [
+      { "value": "UPPER_EPIGASTRIC", "label": "Upper Central (Burning / Acidity)", "localized_label": { "en": "Upper Central Burning", "hi": "ऊपरी मध्य भाग (जलन / गैस)" } },
+      { "value": "RIGHT_LOWER", "label": "Right Lower Abdomen (Sharp)", "localized_label": { "en": "Right Lower Abdomen", "hi": "पेट के निचले दाहिने हिस्से में तेज दर्द" } },
+      { "value": "GENERALIZED_CRAMPING", "label": "All over belly / Cramping", "localized_label": { "en": "General Cramping", "hi": "पूरे पेट में मरोड़ व ऐंठन" } },
+      { "value": "NO_PAIN_ONLY_UPSET", "label": "No pain, only loose motion or nausea", "localized_label": { "en": "No pain, only upset", "hi": "दर्द नहीं, सिर्फ दस्त या उल्टी" } }
+    ],
+    "required": true
+  },
+  {
+    "id": "q_gi_associated_symptoms_001",
+    "category": "hpi",
+    "section": "gastrointestinal",
+    "domain": "GASTROINTESTINAL",
+    "text": "Are you having vomiting, diarrhea, or blood in stool?",
+    "localized_text": {
+      "en": "Do you have nausea, loose stools, or vomiting?",
+      "hi": "क्या आपको उल्टी, दस्त (पतले दस्त), या खून आने की समस्या है?"
+    },
+    "audio_prompt_text": {
+      "en": "Select your digestive symptoms.",
+      "hi": "पाचन और पेट के लक्षण चुनें।"
+    },
+    "input_type": "MULTI_CHOICE",
+    "options": [
+      { "value": "VOMITING", "label": "Vomiting multiple times", "localized_label": { "en": "Frequent Vomiting", "hi": "बार-बार उल्टी होना" } },
+      { "value": "WATERY_DIARRHEA", "label": "Watery loose stools", "localized_label": { "en": "Watery Diarrhea", "hi": "पानी जैसे पतले दस्त" } },
+      { "value": "SEVERE_BLOATING", "label": "Severe Gas / Bloating", "localized_label": { "en": "Severe Gas/Bloating", "hi": "पेट फूलना व भारी गैस" } },
+      { "value": "BLOOD_IN_STOOL", "label": "Blood in Vomit or Stool (Red Flag)", "localized_label": { "en": "Blood in Stool/Vomit", "hi": "उल्टी या मल में खून आना" } },
+      { "value": "NONE", "label": "None of these", "localized_label": { "en": "None of these", "hi": "इनमें से कोई नहीं" } }
+    ],
+    "required": true
+  },
+
+  {
+    "id": "q_joint_location_001",
+    "category": "hpi",
+    "section": "musculoskeletal",
+    "domain": "MUSCULOSKELETAL",
+    "text": "Which joint or body part has pain, stiffness, or swelling?",
+    "localized_text": {
+      "en": "Which joint or body region is painful?",
+      "hi": "शरीर के किस जोड़ या अंग में दर्द, अकड़न या सूजन है?"
+    },
+    "audio_prompt_text": {
+      "en": "Select the affected joint or body area.",
+      "hi": "प्रभावित जोड़ या अंग चुनें।"
+    },
+    "input_type": "SINGLE_CHOICE",
+    "options": [
+      { "value": "KNEE_JOINTS", "label": "Knee Joints (One or both)", "localized_label": { "en": "Knee Joints", "hi": "घुटनों का दर्द (एक या दोनों)" } },
+      { "value": "LOWER_BACK", "label": "Lower Back / Spine (Lumbago)", "localized_label": { "en": "Lower Back", "hi": "कमर व रीढ़ का दर्द" } },
+      { "value": "SHOULDER_NECK", "label": "Shoulder or Neck", "localized_label": { "en": "Shoulder / Neck", "hi": "कंधा या गर्दन का दर्द" } },
+      { "value": "MULTIPLE_SMALL_JOINTS", "label": "Fingers / Hands / Multiple joints", "localized_label": { "en": "Multiple Joints", "hi": "हाथ-पैरों की उंगलियां व कई जोड़" } }
+    ],
+    "required": true
+  },
+
   {
     "id": "q_pain_severity_scale_001",
     "category": "hpi",
     "section": "general",
+    "domain": "PAIN_RELEVANT",
     "text": "On a scale of 0 to 10, how severe is the pain right now?",
     "localized_text": {
       "en": "On a scale of 0 to 10, how severe is your pain?",
@@ -106,10 +233,12 @@
     ],
     "required": true
   },
+
   {
     "id": "q_past_medical_history_001",
     "category": "past_history",
     "section": "medical",
+    "domain": "ALL",
     "text": "Do you have any existing long-term health conditions?",
     "localized_text": {
       "en": "Do you have any diagnosed chronic diseases?",
@@ -134,6 +263,7 @@
     "id": "q_current_medications_001",
     "category": "medication",
     "section": "medication",
+    "domain": "ALL",
     "text": "Are you currently taking any daily medicines?",
     "localized_text": {
       "en": "Are you taking regular prescription medications?",
@@ -154,6 +284,7 @@
     "id": "q_drug_allergies_001",
     "category": "allergy",
     "section": "allergy",
+    "domain": "ALL",
     "text": "Do you have any known allergy to medicines or foods?",
     "localized_text": {
       "en": "Any known allergy to medications (e.g. Penicillin, Sulfa)?",
@@ -172,10 +303,12 @@
     ],
     "required": true
   },
+
   {
     "id": "q_ayurvedic_prakriti_body_001",
     "category": "ayurvedic",
     "section": "dashavidha_pariksha",
+    "domain": "AYURVEDIC",
     "text": "How would you describe your natural body frame and skin?",
     "localized_text": {
       "en": "How would you describe your body build and skin texture?",
@@ -197,6 +330,7 @@
     "id": "q_ayurvedic_agni_digestion_001",
     "category": "ayurvedic",
     "section": "dashavidha_pariksha",
+    "domain": "AYURVEDIC",
     "text": "How is your appetite and digestion usually?",
     "localized_text": {
       "en": "How is your appetite and digestion fire (Agni)?",
@@ -219,6 +353,7 @@
     "id": "q_ayurvedic_koshtha_bowel_001",
     "category": "ayurvedic",
     "section": "dashavidha_pariksha",
+    "domain": "AYURVEDIC",
     "text": "How is your regular bowel habit (Koshtha)?",
     "localized_text": {
       "en": "How are your bowel habits (Koshtha)?",
