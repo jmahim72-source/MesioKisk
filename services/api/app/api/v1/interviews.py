@@ -39,13 +39,18 @@ def start_interview(encounter_id: str, payload: InterviewStartRequest, db: Sessi
         }
     )
 
+from services.api.app.services.ai_dialogue_service import AIDialogueService
+
+ai_service = AIDialogueService()
+
 @router.post("/interviews/{interview_id}/responses", response_model=StandardResponse)
-def submit_response(interview_id: str, payload: InterviewResponseSubmit, db: Session = Depends(get_db)):
+async def submit_response(interview_id: str, payload: InterviewResponseSubmit, db: Session = Depends(get_db)):
     session = db.query(InterviewSession).filter(InterviewSession.id == interview_id).first()
     if not session:
         raise HTTPException(status_code=404, detail="Interview session not found")
 
     encounter = session.encounter
+    patient = encounter.patient
 
     # Check if Chief Complaint
     if "chief_complaint" in payload.question_id and payload.raw_text:
@@ -69,7 +74,7 @@ def submit_response(interview_id: str, payload: InterviewResponseSubmit, db: Ses
     answered_ids = [r.question_id for r in all_responses]
 
     # Evaluate Red Flags on-the-fly
-    chief_text = encounter.chief_complaint_hint or ""
+    chief_text = encounter.chief_complaint_hint or payload.raw_text or ""
     answers_data = [{"raw_text": r.raw_text, "normalized_answer": r.normalized_answer} for r in all_responses]
     red_flags = evaluate_red_flags(chief_text, answers_data)
 
@@ -94,21 +99,43 @@ def submit_response(interview_id: str, payload: InterviewResponseSubmit, db: Ses
             encounter.priority = "EMERGENCY" if rf["severity"] == "CRITICAL" else "PRIORITY"
             db.commit()
 
-    # Get Next Adaptive Question based on patient's chief complaint domain
-    next_question = engine.get_next_question(
-        answered_question_ids=answered_ids,
+    # Format history for AI clinical reasoning
+    history = [
+        {
+            "question_id": r.question_id,
+            "question_text": r.question_text,
+            "answer_text": r.raw_text
+        }
+        for r in all_responses
+    ]
+
+    patient_info = {
+        "gender": getattr(patient, "gender", "FEMALE"),
+        "age": 55,
+        "name": f"{getattr(patient, 'first_name', 'Patient')} {getattr(patient, 'last_name', '')}".strip()
+    }
+    if patient and getattr(patient, "date_of_birth", None):
+        try:
+            birth_year = int(str(patient.date_of_birth)[:4])
+            patient_info["age"] = max(1, 2026 - birth_year)
+        except Exception:
+            pass
+
+    # Generate Next Adaptive Question with AI Clinical Reasoning
+    ai_result = await ai_service.generate_next_question(
+        patient_info=patient_info,
         chief_complaint=chief_text,
+        conversation_history=history,
         language=session.language_used or "hi"
     )
-
-    progress_pct = engine.calculate_progress(answered_ids, chief_text)
 
     return StandardResponse(
         success=True,
         data={
             "response_id": response_record.id,
-            "interview_progress": progress_pct,
-            "next_question": next_question,
+            "interview_progress": ai_result["progress_pct"],
+            "next_question": ai_result["question"],
+            "clinical_reasoning": ai_result.get("clinical_reasoning", ""),
             "red_flag_check": {
                 "status": "ALERT_TRIGGERED" if red_flags else "NO_ALERT",
                 "alerts": red_flags

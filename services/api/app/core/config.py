@@ -24,8 +24,11 @@ class Settings(BaseSettings):
         "*"
     ]
 
+    GROQ_API_KEY: Optional[str] = None
+
     class Config:
         case_sensitive = True
         env_file = ".env"
+        extra = "ignore"
 
 settings = Settings()
