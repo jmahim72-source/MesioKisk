@@ -60,7 +60,7 @@ async def submit_response(interview_id: str, payload: InterviewResponseSubmit, d
     response_record = InterviewResponse(
         session_id=session.id,
         question_id=payload.question_id,
-        question_text=payload.question_id,
+        question_text=payload.question_text or payload.question_id,
         input_type=payload.input_type or "VOICE",
         raw_text=payload.raw_text,
         normalized_answer=payload.normalized_answer,

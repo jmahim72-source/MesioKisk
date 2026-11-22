@@ -157,6 +157,7 @@ class QuestionOut(BaseModel):
 
 class InterviewResponseSubmit(BaseModel):
     question_id: str
+    question_text: Optional[str] = None
     input_type: Optional[str] = "VOICE"
     audio_document_id: Optional[str] = None
     raw_text: Optional[str] = None

@@ -383,38 +383,147 @@ function formatClientQuestion(q: any, lang: string) {
 }
 
 function getClientNextQuestion(answeredIds: string[], chief: string, lang: string) {
+  const stageNum = answeredIds.length + 1;
+  if (stageNum > 7) return { question: null, plan: [1, 2, 3, 4, 5, 6, 7] };
+
   const t = (chief || '').toLowerCase();
-  let plan: string[] = ['q_chief_complaint_001', 'q_symptom_duration_001'];
+  let symptomHi = 'तकलीफ';
+  let symptomEn = 'symptom';
 
-  if (['chest', 'heart', 'सीने', 'छाती', 'धड़कन', 'घबराहट', 'angina', 'cardiac'].some(k => t.includes(k))) {
-    plan.push('q_chestpain_location_001', 'q_associated_symptoms_cardiac_001', 'q_pain_severity_scale_001');
-  } else if (['fever', 'बुखार', 'खांसी', 'cough', 'cold', 'जुकाम', 'breath', 'सांस', 'throat', 'गले'].some(k => t.includes(k))) {
-    plan.push('q_fever_characteristics_001', 'q_respiratory_symptoms_001');
-  } else if (['stomach', 'पेट', 'abdomen', 'उल्टी', 'vomit', 'दस्त', 'loose motion', 'diarrhea', 'acidity', 'gas'].some(k => t.includes(k))) {
-    plan.push('q_gi_pain_location_001', 'q_gi_associated_symptoms_001', 'q_pain_severity_scale_001');
-  } else if (['joint', 'घुटने', 'knee', 'back', 'कमर', 'पीठ', 'shoulder', 'जोड़ों', 'दर्द'].some(k => t.includes(k))) {
-    plan.push('q_joint_location_001', 'q_pain_severity_scale_001');
-  } else {
-    plan.push('q_pain_severity_scale_001');
+  if (t.includes('सिर') || t.includes('head')) {
+    symptomHi = 'सिर दर्द';
+    symptomEn = 'headache';
+  } else if (t.includes('सीने') || t.includes('छाती') || t.includes('chest') || t.includes('heart')) {
+    symptomHi = 'सीने में दर्द व भारीपन';
+    symptomEn = 'chest discomfort';
+  } else if (t.includes('घुटने') || t.includes('knee') || t.includes('कमर') || t.includes('back') || t.includes('जोड़')) {
+    symptomHi = 'जोड़ों व मांसपेशियों का दर्द';
+    symptomEn = 'joint and muscle pain';
+  } else if (t.includes('पेट') || t.includes('stomach') || t.includes('उल्टी') || t.includes('vomit') || t.includes('दस्त')) {
+    symptomHi = 'पेट दर्द व पाचन समस्या';
+    symptomEn = 'abdominal symptoms';
+  } else if (t.includes('दांत') || t.includes('tooth')) {
+    symptomHi = 'दांत का दर्द';
+    symptomEn = 'toothache';
+  } else if (t.includes('खांसी') || t.includes('cough') || t.includes('बुखार') || t.includes('fever')) {
+    symptomHi = 'खांसी व बुखार';
+    symptomEn = 'respiratory symptoms and fever';
   }
 
-  plan.push(
-    'q_past_medical_history_001',
-    'q_current_medications_001',
-    'q_drug_allergies_001',
-    'q_ayurvedic_prakriti_body_001',
-    'q_ayurvedic_agni_digestion_001',
-    'q_ayurvedic_koshtha_bowel_001'
-  );
+  const hasDuration = t.includes('दिन') || t.includes('day') || t.includes('सुबह') || t.includes('morning') || t.includes('हफ्ते') || t.includes('week');
 
-  for (const qid of plan) {
-    if (!answeredIds.includes(qid)) {
-      const qObj = OFFLINE_QUESTIONS.find(q => q.id === qid);
-      if (qObj) return { question: formatClientQuestion(qObj, lang), plan };
+  let qTextHi = '';
+  let qTextEn = '';
+  let inputType = 'SINGLE_CHOICE';
+  let options: any[] = [];
+  let badgeHi = '';
+  let badgeEn = '';
+
+  if (stageNum === 2) {
+    badgeHi = 'शुरुआत व अवधि';
+    badgeEn = 'Onset & Duration';
+    inputType = 'SINGLE_CHOICE';
+    if (hasDuration) {
+      qTextHi = `आपने बताया कि आपको ${symptomHi} हाल से है। क्या यह अचानक बहुत तेज हुआ या धीरे-धीरे बढ़ा, और क्या यह लगातार बना रहता है?`;
+      qTextEn = `You mentioned experiencing this ${symptomEn}. Did it begin suddenly or develop gradually, and is it constant or intermittent?`;
+      options = [
+        { value: 'SUDDEN_CONSTANT', label: lang === 'hi' ? 'अचानक तेज हुआ और लगातार बना हुआ है' : 'Started suddenly and remains constant' },
+        { value: 'GRADUAL_WORSE', label: lang === 'hi' ? 'धीरे-धीरे शुरू हुआ और बढ़ता जा रहा है' : 'Gradual onset, progressively worsening' },
+        { value: 'INTERMITTENT', label: lang === 'hi' ? 'लगातार नहीं है, बीच-बीच में आराम मिलता है' : 'Comes and goes in waves' },
+        { value: 'TRIGGERED', label: lang === 'hi' ? 'किसी खास काम या गतिविधि के बाद शुरू हुआ' : 'Triggered by a specific activity' }
+      ];
+    } else {
+      qTextHi = `यह ${symptomHi} आपको कितने समय से हो रहा है और इसकी शुरुआत कैसे हुई?`;
+      qTextEn = `Since how long have you been experiencing this ${symptomEn} and how did it begin?`;
+      options = [
+        { value: 'HOURS_TODAY', label: lang === 'hi' ? 'आज या कुछ घंटों से (अचानक शुरू हुआ)' : 'Started today / a few hours ago' },
+        { value: '1_3_DAYS', label: lang === 'hi' ? '१ से ३ दिनों से' : '1 to 3 days ago' },
+        { value: '1_2_WEEKS', label: lang === 'hi' ? '१ से २ हफ़्तों से' : '1 to 2 weeks ago' },
+        { value: 'MONTHS_CHRONIC', label: lang === 'hi' ? '१ महीने या उससे अधिक समय से' : 'More than 1 month ago' }
+      ];
     }
+  } else if (stageNum === 3) {
+    badgeHi = 'लक्षण की स्थिति';
+    badgeEn = 'Location & Character';
+    inputType = 'MULTI_CHOICE';
+    qTextHi = `आपके ${symptomHi} की सटीक स्थिति कहाँ है और दर्द या असहजता का प्रकार कैसा है?`;
+    qTextEn = `Where exactly is the ${symptomEn} located and what does the sensation feel like?`;
+    options = [
+      { value: 'SHARP_LOCALIZED', label: lang === 'hi' ? 'एक निश्चित जगह पर तेज चुभने जैसा दर्द' : 'Sharp localized piercing sensation' },
+      { value: 'DULL_HEAVY', label: lang === 'hi' ? 'गहरा भारीपन, दबाव या जकड़न' : 'Deep ache, heaviness or squeezing tightness' },
+      { value: 'BURNING_THROB', label: lang === 'hi' ? 'जलन या धड़कन जैसी टीस' : 'Burning or throbbing sensation' },
+      { value: 'RADIATING_SPREAD', label: lang === 'hi' ? 'आसपास के अन्य अंगों में फैलता हुआ' : 'Radiating or spreading to adjacent areas' }
+    ];
+  } else if (stageNum === 4) {
+    badgeHi = 'गंभीरता व खतरे के संकेत';
+    badgeEn = 'Severity & Red Flags';
+    inputType = 'MULTI_CHOICE';
+    qTextHi = `इस ${symptomHi} के साथ क्या आपको इनमें से कोई भी गंभीर या असहज लक्षण महसूस हो रहे हैं?`;
+    qTextEn = `Along with your ${symptomEn}, are you experiencing any of these critical warning symptoms?`;
+    options = [
+      { value: 'BREATHLESSNESS_DIZZY', label: lang === 'hi' ? 'सांस फूलना, चक्कर आना या अत्यधिक पसीना' : 'Breathlessness, dizziness or cold sweating' },
+      { value: 'VOMITING_NAUSEA', label: lang === 'hi' ? 'जी मिचलाना या बार-बार उल्टी होना' : 'Nausea or frequent vomiting' },
+      { value: 'WEAKNESS_NUMBNESS', label: lang === 'hi' ? 'शरीर के किसी अंग में कमजोरी या सुन्नपन' : 'Localized weakness or numbness' },
+      { value: 'NO_RED_FLAGS', label: lang === 'hi' ? 'इनमें से कोई नहीं (सामान्य दर्द)' : 'None of these warning symptoms' }
+    ];
+  } else if (stageNum === 5) {
+    badgeHi = 'पूर्व इतिहास';
+    badgeEn = 'Medical History';
+    inputType = 'MULTI_CHOICE';
+    qTextHi = `क्या आपको इनमें से कोई पुरानी बीमारी है, या ऐसा ${symptomHi} पहले कभी हुआ है?`;
+    qTextEn = `Do you have a history of any chronic conditions, or prior similar ${symptomEn}?`;
+    options = [
+      { value: 'HYPERTENSION', label: lang === 'hi' ? 'उच्च रक्तचाप (High BP)' : 'High Blood Pressure' },
+      { value: 'DIABETES', label: lang === 'hi' ? 'मधुमेह (डायबिटीज / शुगर)' : 'Diabetes Mellitus' },
+      { value: 'HEART_DISEASE', label: lang === 'hi' ? 'हृदय रोग (Heart Disease)' : 'Heart Disease' },
+      { value: 'ALLERGIES_ASTHMA', label: lang === 'hi' ? 'दमा या एलर्जी (Asthma / Allergy)' : 'Asthma / Allergies' },
+      { value: 'NONE', label: lang === 'hi' ? 'कोई पुरानी बीमारी नहीं' : 'No prior chronic conditions' }
+    ];
+  } else if (stageNum === 6) {
+    badgeHi = 'दवाइयाँ व एलर्जी';
+    badgeEn = 'Medications & Allergies';
+    inputType = 'MULTI_CHOICE';
+    qTextHi = `क्या आपने इस ${symptomHi} के लिए हाल में कोई दवा ली है, और क्या आपको किसी दवा से एलर्जी है?`;
+    qTextEn = `Have you taken any medicines for your ${symptomEn}, and do you have any known drug allergies?`;
+    options = [
+      { value: 'TOOK_PAINKILLER', label: lang === 'hi' ? `हाँ, ${symptomHi} कम करने के लिए दवा ली है` : `Took medication/painkiller for ${symptomEn}` },
+      { value: 'REGULAR_MEDS', label: lang === 'hi' ? 'नियमित बीपी, शुगर या अन्य दवाइयाँ चल रही हैं' : 'Taking regular chronic daily medications' },
+      { value: 'KNOWN_ALLERGY', label: lang === 'hi' ? 'किसी विशेष दवा से एलर्जी है' : 'Known drug allergy' },
+      { value: 'NONE', label: lang === 'hi' ? 'कोई दवा नहीं ली और कोई एलर्जी नहीं है' : 'No medications and no known allergies' }
+    ];
+  } else {
+    badgeHi = 'आयुर्वेदिक प्रकृति';
+    badgeEn = 'Ayurvedic Profile';
+    inputType = 'SINGLE_CHOICE';
+    qTextHi = `आयुर्वेद के अनुसार आपकी शारीरिक प्रकृति (Prakriti) और पाचन अग्नि कैसी है, जो इस ${symptomHi} से जुड़ी हो सकती है?`;
+    qTextEn = `According to Ayurveda, what is your Prakriti (constitution) and digestive fire (Agni), correlating with your ${symptomEn}?`;
+    options = [
+      { value: 'VATA', label: lang === 'hi' ? 'वात (Vata): सूखापन, जोड़ों में दर्द/कटकटाहट, बेचैनी, ठंड ज्यादा लगना (विषमाग्नि)' : 'Vata: Lean/dry build, joint pain, cold sensitivity (Vishamagni)' },
+      { value: 'PITTA', label: lang === 'hi' ? 'पित्त (Pitta): शरीर में जलन, अत्यधिक गर्मी लगना, खट्टी डकार, तेज भूख (तीक्ष्णाग्नि)' : 'Pitta: Burning sensation, heat sensitivity, hyperacidity (Tikshnagni)' },
+      { value: 'KAPHA', label: lang === 'hi' ? 'कफ (Kapha): भारी शरीर, कफ/बलगम बनना, सुस्ती, मंद पाचन (मंदाग्नि)' : 'Kapha: Heavy build, phlegm, slow digestion (Mandagni)' },
+      { value: 'SAMA', label: lang === 'hi' ? 'सम (Sama): संतुलित स्वास्थ्य व नियमित पाचन (समाग्नि)' : 'Sama: Balanced doshas and steady digestion (Samagni)' }
+    ];
   }
 
-  return { question: null, plan };
+  return {
+    question: {
+      id: `q_stage_${stageNum}`,
+      stage_num: stageNum,
+      total_stages: 7,
+      stage_badge_hi: badgeHi,
+      stage_badge_en: badgeEn,
+      category: 'adaptive',
+      text: qTextEn,
+      localized_text: lang === 'hi' ? qTextHi : qTextEn,
+      audio_prompt_text: lang === 'hi' ? qTextHi : qTextEn,
+      input_type: inputType,
+      required: true,
+      options: options,
+      response_context: `${symptomHi} (${symptomEn})`,
+      clinical_reasoning: `Response-based adaptation focusing on ${symptomEn} reported in intake.`
+    },
+    plan: [1, 2, 3, 4, 5, 6, 7]
+  };
 }
 
 export const KioskAPI = {
@@ -536,8 +645,8 @@ export const KioskAPI = {
     };
   },
 
-  async submitAnswer(interviewId: string, questionId: string, rawText: string, normalized?: any) {
-    if (questionId === 'q_chief_complaint_001') {
+  async submitAnswer(interviewId: string, questionId: string, rawText: string, normalized?: any, questionText?: string) {
+    if (questionId === 'q_chief_complaint_001' || !clientSession.chiefComplaint) {
       clientSession.chiefComplaint = rawText;
     }
     if (!clientSession.answeredIds.includes(questionId)) {
@@ -550,6 +659,7 @@ export const KioskAPI = {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           question_id: questionId,
+          question_text: questionText || questionId,
           input_type: 'VOICE',
           raw_text: rawText,
           normalized_answer: normalized || { answer: rawText },
