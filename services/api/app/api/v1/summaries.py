@@ -81,6 +81,19 @@ def get_encounter_summary(encounter_id: str, db: Session = Depends(get_db)):
         generate_summary(encounter_id=encounter_id, db=db)
         summary = db.query(ClinicalSummary).filter(ClinicalSummary.encounter_id == encounter_id).first()
 
+    encounter = db.query(Encounter).filter(Encounter.id == encounter_id).first()
+    doc_list = []
+    if encounter:
+        for d in encounter.documents:
+            doc_list.append({
+                "document_id": d.id,
+                "file_name": d.file_name,
+                "file_type": d.file_type,
+                "ocr_status": d.ocr_status,
+                "ocr_text": d.ocr_text,
+                "ocr_confidence": d.ocr_confidence
+            })
+
     return StandardResponse(
         success=True,
         data={
@@ -95,6 +108,7 @@ def get_encounter_summary(encounter_id: str, db: Session = Depends(get_db)):
             "doctor_notes": summary.doctor_notes,
             "sections": summary.summary_json,
             "summary_text": summary.summary_text,
+            "documents": doc_list,
             "generated_at": summary.created_at.isoformat() if summary.created_at else datetime.now().isoformat()
         }
     )

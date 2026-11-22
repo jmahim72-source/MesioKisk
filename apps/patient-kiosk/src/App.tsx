@@ -1740,9 +1740,24 @@ export function App() {
                 {lang === 'hi' ? 'डॉक्टर का पर्चा (Prescription)' : 'Doctor Prescription'}
               </div>
               <input type="file" id="rx-upload" style={{ display: 'none' }} onChange={(e) => handleFileUpload(e, 'PRESCRIPTION')} />
-              <label htmlFor="rx-upload" className="btn btn-primary" style={{ cursor: 'pointer', display: 'inline-flex' }}>
-                <Upload size={20} /> {lang === 'hi' ? 'पर्चा अपलोड करें' : 'Upload Rx'}
-              </label>
+              <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap', marginTop: '12px' }}>
+                <label htmlFor="rx-upload" className="btn btn-primary" style={{ cursor: 'pointer', display: 'inline-flex' }}>
+                  <Upload size={18} /> {lang === 'hi' ? 'पर्चा अपलोड करें' : 'Upload Rx'}
+                </label>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  style={{ fontSize: '13px', padding: '8px 12px' }}
+                  onClick={() => {
+                    const sampleFile = new File(['Tab Metformin 500mg, Tab Telmisartan 40mg, Tab Pantoprazole 40mg'], 'prescription_meena_devi.txt', { type: 'text/plain' });
+                    KioskAPI.uploadDocument(encounterId, sampleFile, 'PRESCRIPTION');
+                    setUploadedFiles(prev => [...prev, { name: 'prescription_meena_devi.png', type: 'PRESCRIPTION', status: 'OCR Extracted (Metformin 500mg, Telmisartan 40mg, Pantoprazole 40mg)' }]);
+                  }}
+                  title="Load pre-built sample doctor prescription"
+                >
+                  ⚡ {lang === 'hi' ? 'नमूना पर्चा' : 'Sample Rx'}
+                </button>
+              </div>
             </div>
 
             <div style={{ border: '2px dashed var(--secondary)', borderRadius: '18px', padding: '30px', textAlign: 'center', background: '#f8fafc' }}>
@@ -1751,9 +1766,24 @@ export function App() {
                 {lang === 'hi' ? 'जांच रिपोर्ट (Lab Report)' : 'Lab Report (Sugar/Blood)'}
               </div>
               <input type="file" id="lab-upload" style={{ display: 'none' }} onChange={(e) => handleFileUpload(e, 'LAB_REPORT')} />
-              <label htmlFor="lab-upload" className="btn btn-secondary" style={{ cursor: 'pointer', display: 'inline-flex' }}>
-                <Upload size={20} /> {lang === 'hi' ? 'रिपोर्ट अपलोड करें' : 'Upload Lab Report'}
-              </label>
+              <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap', marginTop: '12px' }}>
+                <label htmlFor="lab-upload" className="btn btn-secondary" style={{ cursor: 'pointer', display: 'inline-flex' }}>
+                  <Upload size={18} /> {lang === 'hi' ? 'रिपोर्ट अपलोड करें' : 'Upload Lab Report'}
+                </label>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  style={{ fontSize: '13px', padding: '8px 12px' }}
+                  onClick={() => {
+                    const sampleFile = new File(['Fasting Blood Sugar (FBS): 168 mg/dL [HIGH], HbA1c: 8.4 % [ELEVATED]'], 'lab_report_blood_sugar_lipid.txt', { type: 'text/plain' });
+                    KioskAPI.uploadDocument(encounterId, sampleFile, 'LAB_REPORT');
+                    setUploadedFiles(prev => [...prev, { name: 'lab_report_blood_sugar_lipid.png', type: 'LAB_REPORT', status: 'OCR Extracted (FBS: 168 mg/dL, HbA1c: 8.4%)' }]);
+                  }}
+                  title="Load pre-built sample blood sugar & lipid test report"
+                >
+                  ⚡ {lang === 'hi' ? 'नमूना रिपोर्ट' : 'Sample Lab Report'}
+                </button>
+              </div>
             </div>
           </div>
 

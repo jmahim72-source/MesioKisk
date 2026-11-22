@@ -1,0 +1,42 @@
+======================================================================
+             GOVERNMENT COMMUNITY HEALTH CENTRE & POLICLINIC
+                     OPD PRESCRIBER CONSULTATION SLIP
+======================================================================
+Date: 18-Feb-2026                            OPD Slip No: G-10842
+Patient Name: Rajesh Kumar                   Age / Gender: 34 Yrs / Male
+Phone: +91 94123 45678                       Department: General Medicine
+
+Vitals:
+  * Temperature: 102.4 F (Oral)
+  * Blood Pressure: 122/82 mmHg
+  * SpO2: 98% on room air
+  * Pulse: 96 bpm
+
+Chief Complaint:
+  * High fever with chills for 3 days
+  * Severe body ache, sore throat, and dry cough
+
+Diagnosis:
+  * Acute Viral Upper Respiratory Tract Infection (URTI) with High Grade Pyrexia
+
+Rx:
+----------------------------------------------------------------------
+1. Tab Paracetamol 650 mg (PO TDS)
+   Take 1 tablet thrice daily after food x 4 days (SOS for temp > 100 F)
+
+2. Tab Amoxicillin + Clavulanic Acid 625 mg (PO BD)
+   Take 1 tablet twice daily after meals x 5 days (Morning & Night)
+
+3. Syp Levocetirizine + Montelukast
+   Take 10 ml once daily at bedtime x 5 days
+
+4. ORS Hydration Sachet - Dissolve in 1 liter clean water, sip throughout day
+
+Doctor Advice:
+  * Plenty of warm fluids and steam inhalation twice daily.
+  * Return if fever persists beyond 3 days or if breathlessness occurs.
+
+Consulting Medical Officer:
+Dr. S. K. Gupta, MBBS
+Medical Officer, CHC Health Centre
+======================================================================

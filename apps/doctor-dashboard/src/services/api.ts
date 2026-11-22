@@ -70,22 +70,21 @@ export const DoctorAPI = {
       encounter_id: encounterId,
       status: 'DRAFT',
       is_final: false,
+      doctor_notes: '',
       sections: {
-        chief_complaint: 'Chest pain and breathlessness since morning (4 hours)',
-        history_present_illness: '58-year-old female presented with retrosternal chest heaviness radiating to left shoulder associated with cold sweating and shortness of breath.',
-        past_medical_history: ['Type 2 Diabetes Mellitus', 'Essential Hypertension'],
-        medications: [
-          { name: 'Metformin', dose: '500 mg', frequency: 'TWICE_DAILY' },
-          { name: 'Telmisartan', dose: '40 mg', frequency: 'ONCE_DAILY' }
-        ],
-        allergies: ['No known drug allergies'],
+        chief_complaint: 'General OPD Consultation',
+        history_present_illness: 'Patient presented for clinical evaluation and consultation.',
+        past_medical_history: ['None reported'],
+        medications: [],
+        allergies: [],
         ayurvedic_assessment: {
           prakriti: 'VATA_PITTA',
-          agni: 'VISHAMAGNI',
-          koshtha: 'KRURA'
+          agni: 'SAMA',
+          koshtha: 'MADHYAMA'
         },
-        red_flags: ['Possible Acute Coronary Syndrome (CARDIAC_001)']
-      }
+        red_flags: []
+      },
+      documents: []
     };
   },
 

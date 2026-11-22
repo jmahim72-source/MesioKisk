@@ -17,11 +17,8 @@ export function App() {
   const [loading, setLoading] = useState<boolean>(false);
 
   // Verification state
-  const [verifiedEntities, setVerifiedEntities] = useState<Record<string, 'VERIFIED' | 'REJECTED'>>({
-    ent_01: 'VERIFIED',
-    ent_02: 'VERIFIED'
-  });
-  const [doctorNotes, setDoctorNotes] = useState<string>('Patient confirmed acute retrosternal chest pain with left arm radiation. Stat 12-lead ECG ordered.');
+  const [verifiedEntities, setVerifiedEntities] = useState<Record<string, 'VERIFIED' | 'REJECTED'>>({});
+  const [doctorNotes, setDoctorNotes] = useState<string>('');
   const [isVerified, setIsVerified] = useState<boolean>(false);
   const [fhirBundle, setFhirBundle] = useState<any>(null);
   const [showFhirModal, setShowFhirModal] = useState<boolean>(false);
@@ -43,6 +40,7 @@ export function App() {
     setLoading(true);
     const sumData = await DoctorAPI.getEncounterSummary(enc.encounter_id);
     setSummary(sumData);
+    setDoctorNotes(sumData.doctor_notes || '');
     setIsVerified(sumData.is_final || false);
     setCurrentView('WORKSPACE');
     setLoading(false);
@@ -351,6 +349,7 @@ export function App() {
                         rows={3}
                         value={doctorNotes}
                         onChange={(e) => setDoctorNotes(e.target.value)}
+                        placeholder="Enter clinical examination notes, differential diagnosis, and doctor advice here..."
                         style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '14px' }}
                       />
                     </div>
@@ -368,80 +367,111 @@ export function App() {
                   </div>
                 </div>
 
-                {/* Right Column: OCR Documents & Entity Verification */}
+                {/* Right Column: Dynamic Medications, Documents & Entities */}
                 <div>
                   <div className="card">
                     <h3 style={{ fontSize: '18px', fontWeight: '800', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <FileText color="var(--secondary)" size={20} /> Uploaded Document & Extracted Entities
+                      <FileText color="var(--secondary)" size={20} /> Patient Medications & Clinical Documents
                     </h3>
 
-                    {/* Extracted Entities List */}
+                    {/* Extracted / Reported Medications */}
                     <div style={{ marginBottom: '20px' }}>
                       <div style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-muted)', marginBottom: '10px' }}>
-                        EXTRACTED MEDICATIONS & LAB VALUES (OCR + NLP)
+                        REPORTED MEDICATIONS & ALLERGIES
                       </div>
 
-                      <div className="entity-row">
-                        <div>
-                          <div style={{ fontWeight: '700' }}>Metformin 500 mg (PO BD)</div>
-                          <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Confidence: 95% • Source: Rx Line 1</div>
-                        </div>
-                        <div style={{ display: 'flex', gap: '6px' }}>
-                          <button
-                            className={`btn ${verifiedEntities.ent_01 === 'VERIFIED' ? 'btn-success' : 'btn-secondary'}`}
-                            style={{ padding: '6px 10px', fontSize: '12px' }}
-                            onClick={() => handleVerifyEntity('ent_01', 'VERIFIED')}
-                          >
-                            <Check size={14} /> Accept
-                          </button>
-                          <button
-                            className={`btn ${verifiedEntities.ent_01 === 'REJECTED' ? 'btn-danger' : 'btn-secondary'}`}
-                            style={{ padding: '6px 10px', fontSize: '12px' }}
-                            onClick={() => handleVerifyEntity('ent_01', 'REJECTED')}
-                          >
-                            <XCircle size={14} />
-                          </button>
-                        </div>
-                      </div>
+                      {(() => {
+                        const rawMeds = summary.sections?.medications || [];
+                        const validMeds = rawMeds.filter((m: any) => {
+                          const name = typeof m === 'string' ? m : (m?.name || '');
+                          return name && !['no current medication', 'none', 'no', 'none reported'].includes(name.toLowerCase());
+                        });
 
-                      <div className="entity-row">
-                        <div>
-                          <div style={{ fontWeight: '700' }}>Telmisartan 40 mg (PO OD)</div>
-                          <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Confidence: 92% • Source: Rx Line 2</div>
-                        </div>
-                        <div style={{ display: 'flex', gap: '6px' }}>
-                          <button
-                            className={`btn ${verifiedEntities.ent_02 === 'VERIFIED' ? 'btn-success' : 'btn-secondary'}`}
-                            style={{ padding: '6px 10px', fontSize: '12px' }}
-                            onClick={() => handleVerifyEntity('ent_02', 'VERIFIED')}
-                          >
-                            <Check size={14} /> Accept
-                          </button>
-                          <button
-                            className={`btn ${verifiedEntities.ent_02 === 'REJECTED' ? 'btn-danger' : 'btn-secondary'}`}
-                            style={{ padding: '6px 10px', fontSize: '12px' }}
-                            onClick={() => handleVerifyEntity('ent_02', 'REJECTED')}
-                          >
-                            <XCircle size={14} />
-                          </button>
-                        </div>
-                      </div>
+                        const rawAllergies = summary.sections?.allergies || [];
+                        const validAllergies = rawAllergies.filter((a: string) => {
+                          return a && !['no known allergies', 'no known drug allergies', 'none', 'no'].includes(a.toLowerCase());
+                        });
+
+                        if (validMeds.length === 0 && validAllergies.length === 0) {
+                          return (
+                            <div style={{ padding: '16px', background: '#f8fafc', borderRadius: '10px', border: '1px solid var(--border-color)', color: 'var(--text-muted)', fontSize: '14px', textAlign: 'center' }}>
+                              <span>No active medications or drug allergies reported by patient during intake.</span>
+                            </div>
+                          );
+                        }
+
+                        return (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            {validMeds.map((med: any, idx: number) => {
+                              const medName = typeof med === 'string' ? med : med.name;
+                              const dose = typeof med === 'object' && med.dose ? med.dose : '';
+                              const freq = typeof med === 'object' && med.frequency ? `(${med.frequency})` : '';
+                              const entKey = `med_${idx}`;
+                              return (
+                                <div key={idx} className="entity-row">
+                                  <div>
+                                    <div style={{ fontWeight: '700' }}>{medName} {dose} {freq}</div>
+                                    <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                                      Source: Patient Intake Questionnaire
+                                    </div>
+                                  </div>
+                                  <div style={{ display: 'flex', gap: '6px' }}>
+                                    <button
+                                      className={`btn ${verifiedEntities[entKey] === 'VERIFIED' ? 'btn-success' : 'btn-secondary'}`}
+                                      style={{ padding: '6px 10px', fontSize: '12px' }}
+                                      onClick={() => handleVerifyEntity(entKey, 'VERIFIED')}
+                                    >
+                                      <Check size={14} /> Accept
+                                    </button>
+                                    <button
+                                      className={`btn ${verifiedEntities[entKey] === 'REJECTED' ? 'btn-danger' : 'btn-secondary'}`}
+                                      style={{ padding: '6px 10px', fontSize: '12px' }}
+                                      onClick={() => handleVerifyEntity(entKey, 'REJECTED')}
+                                    >
+                                      <XCircle size={14} />
+                                    </button>
+                                  </div>
+                                </div>
+                              );
+                            })}
+
+                            {validAllergies.length > 0 && (
+                              <div style={{ marginTop: '8px', padding: '10px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', color: '#991b1b', fontSize: '13px' }}>
+                                <strong>⚠️ Known Allergies:</strong> {validAllergies.join(', ')}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </div>
 
                     {/* Scanned Document Preview Box */}
                     <div style={{ background: '#f8fafc', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '16px' }}>
                       <div style={{ fontSize: '13px', fontWeight: '700', marginBottom: '8px' }}>
-                        DOCUMENT OCR TEXT (prescription_jan_2026.jpg)
+                        UPLOADED INTAKE DOCUMENTS & OCR
                       </div>
-                      <pre style={{ fontSize: '12px', background: '#1e293b', color: '#e2e8f0', padding: '14px', borderRadius: '8px', overflowX: 'auto', whiteSpace: 'pre-wrap', lineHeight: '1.5' }}>
-{`AIIMS OPD / District Hospital Meerut
-Patient: Meena Devi, 58 F | Date: 12-Jan-2026
-Rx:
-1. Tab Metformin 500mg PO BD x 1 month (After meals)
-2. Tab Telmisartan 40mg PO OD (Morning)
-3. Tab Pantoprazole 40mg PO OD (Before breakfast)
-Diagnosis: Type 2 Diabetes Mellitus, Essential Hypertension`}
-                      </pre>
+
+                      {(() => {
+                        const docs = summary.documents || [];
+                        if (docs.length === 0) {
+                          return (
+                            <div style={{ padding: '16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
+                              <span>No previous prescriptions or diagnostic reports were uploaded for this encounter.</span>
+                            </div>
+                          );
+                        }
+
+                        return docs.map((doc: any, dIdx: number) => (
+                          <div key={dIdx} style={{ marginBottom: '12px' }}>
+                            <div style={{ fontSize: '12px', fontWeight: '700', color: 'var(--primary)', marginBottom: '4px' }}>
+                              📄 {doc.file_name} ({doc.ocr_status || 'PROCESSED'})
+                            </div>
+                            <pre style={{ fontSize: '12px', background: '#1e293b', color: '#e2e8f0', padding: '14px', borderRadius: '8px', overflowX: 'auto', whiteSpace: 'pre-wrap', lineHeight: '1.5' }}>
+                              {doc.ocr_text || 'No text extracted'}
+                            </pre>
+                          </div>
+                        ));
+                      })()}
                     </div>
                   </div>
                 </div>
