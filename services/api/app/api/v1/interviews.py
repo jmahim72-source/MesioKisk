@@ -156,6 +156,13 @@ def complete_interview(interview_id: str, db: Session = Depends(get_db)):
     encounter.status = "READY_FOR_REVIEW"
     db.commit()
 
+    # Pre-generate clinical summary so it is immediately available for the doctor dashboard
+    try:
+        from services.api.app.api.v1.summaries import generate_summary
+        generate_summary(encounter_id=encounter.id, db=db)
+    except Exception as e:
+        print(f"[complete_interview] Auto-generate summary notice: {e}")
+
     return StandardResponse(
         success=True,
         data={

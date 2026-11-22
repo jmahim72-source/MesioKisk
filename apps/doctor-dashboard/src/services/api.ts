@@ -72,13 +72,13 @@ export const DoctorAPI = {
       is_final: false,
       doctor_notes: '',
       sections: {
-        chief_complaint: 'General OPD Consultation',
-        history_present_illness: 'Patient presented for clinical evaluation and consultation.',
+        chief_complaint: 'Clinical Intake in Progress',
+        history_present_illness: 'Patient intake details are being compiled.',
         past_medical_history: ['None reported'],
         medications: [],
         allergies: [],
-        functional_impact: 'Discomfort moderately impacting daily tasks and sleep.',
-        red_flags: ['Possible Acute Coronary Syndrome (CARDIAC_001) - Immediate 12-lead ECG, troponin, and urgent cardiologist review required.']
+        functional_impact: 'No severe limitations reported.',
+        red_flags: []
       },
       documents: []
     };
