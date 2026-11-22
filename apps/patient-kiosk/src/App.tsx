@@ -790,35 +790,39 @@ export function App() {
         </div>
 
         <div className="header-actions">
-          <button
-            className={`btn ${isListening ? 'btn-danger' : 'btn-primary'}`}
-            onClick={toggleVoiceInput}
-            style={{
-              padding: '8px 16px',
-              fontSize: '15px',
-              borderRadius: '24px',
-              boxShadow: isListening ? '0 0 16px rgba(220, 38, 38, 0.5)' : undefined
-            }}
-            title={isListening ? 'माइक बंद करें (Stop Listening)' : 'माइक शुरू करें (Start Voice Assistant)'}
-          >
-            {isListening ? <MicOff size={18} /> : <Mic size={18} />}
-            <span>{isListening ? (lang === 'hi' ? 'माइक सक्रिय' : 'Mic Active') : (lang === 'hi' ? 'वॉयस शुरू' : 'Voice On')}</span>
-          </button>
+          {step === 'INTERVIEW' && (
+            <button
+              className={`btn ${isListening ? 'btn-danger' : 'btn-primary'}`}
+              onClick={toggleVoiceInput}
+              style={{
+                padding: '8px 16px',
+                fontSize: '15px',
+                borderRadius: '24px',
+                boxShadow: isListening ? '0 0 16px rgba(220, 38, 38, 0.5)' : undefined
+              }}
+              title={isListening ? 'माइक बंद करें (Stop Listening)' : 'माइक शुरू करें (Start Voice Assistant)'}
+            >
+              {isListening ? <MicOff size={18} /> : <Mic size={18} />}
+              <span>{isListening ? (lang === 'hi' ? 'माइक सक्रिय' : 'Mic Active') : (lang === 'hi' ? 'वॉयस शुरू' : 'Voice On')}</span>
+            </button>
+          )}
 
-          <div className="lang-toggle">
-            <button
-              className={`lang-btn ${lang === 'hi' ? 'active' : ''}`}
-              onClick={() => { setLang('hi'); if (currentQuestion?.localized_text) playAudio(currentQuestion.localized_text); }}
-            >
-              हिंदी
-            </button>
-            <button
-              className={`lang-btn ${lang === 'en' ? 'active' : ''}`}
-              onClick={() => { setLang('en'); if (currentQuestion?.localized_text) playAudio(currentQuestion.localized_text); }}
-            >
-              English
-            </button>
-          </div>
+          {step !== 'LANGUAGE' && (
+            <div className="lang-toggle">
+              <button
+                className={`lang-btn ${lang === 'hi' ? 'active' : ''}`}
+                onClick={() => { setLang('hi'); if (currentQuestion?.localized_text) playAudio(currentQuestion.localized_text); }}
+              >
+                हिंदी
+              </button>
+              <button
+                className={`lang-btn ${lang === 'en' ? 'active' : ''}`}
+                onClick={() => { setLang('en'); if (currentQuestion?.localized_text) playAudio(currentQuestion.localized_text); }}
+              >
+                English
+              </button>
+            </div>
+          )}
 
           <button className="btn btn-secondary btn-icon" onClick={handleCompleteReset} title="Reset">
             <RefreshCw size={22} />
@@ -826,16 +830,17 @@ export function App() {
         </div>
       </header>
 
-      {/* GLOBAL PERSISTENT VOICE ASSISTANT HUD BAR */}
-      <div style={{
-        background: isListening ? '#fef2f2' : 'var(--bg-card)',
-        border: isListening ? '2px solid #ef4444' : '1px solid var(--border-color)',
-        borderRadius: '16px',
-        padding: '16px 20px',
-        marginBottom: '20px',
-        boxShadow: isListening ? '0 4px 20px rgba(239, 68, 68, 0.25)' : 'var(--shadow-sm)',
-        transition: 'all 0.3s ease'
-      }}>
+      {/* VOICE ASSISTANT HUD BAR - ONLY SHOWN DURING CLINICAL INTERVIEW */}
+      {step === 'INTERVIEW' && (
+        <div style={{
+          background: isListening ? '#fef2f2' : 'var(--bg-card)',
+          border: isListening ? '2px solid #ef4444' : '1px solid var(--border-color)',
+          borderRadius: '16px',
+          padding: '16px 20px',
+          marginBottom: '20px',
+          boxShadow: isListening ? '0 4px 20px rgba(239, 68, 68, 0.25)' : 'var(--shadow-sm)',
+          transition: 'all 0.3s ease'
+        }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div style={{
@@ -1118,133 +1123,76 @@ export function App() {
             {lang === 'hi' ? '⚡ इस स्क्रीन के त्वरित वॉयस कमांड (बोलें या टैप करें):' : '⚡ Voice Commands for this screen (Speak or Tap):'}
           </div>
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-            {step === 'LANGUAGE' && (
+            {currentStageNum === 1 && (
               <>
-                <button type="button" className="voice-chip" onClick={() => simulateVoiceCommand('हिंदी में शुरू करें')}>
-                  🎤 "हिंदी में शुरू करें"
+                <button type="button" className="voice-chip" onClick={() => simulateVoiceCommand(lang === 'hi' ? 'सीने में तेज दर्द और सांस फूल रही है' : 'Severe chest pain and breathlessness')}>
+                  🎤 {lang === 'hi' ? '"सीने में तेज दर्द और सांस फूल रही है"' : '"Chest pain and breathlessness"'}
                 </button>
-                <button type="button" className="voice-chip" onClick={() => simulateVoiceCommand('Continue in English')}>
-                  🎤 "Continue in English"
+                <button type="button" className="voice-chip" onClick={() => simulateVoiceCommand(lang === 'hi' ? 'सिर में बहुत तेज दर्द और चक्कर आ रहे हैं' : 'Severe headache and dizziness')}>
+                  🎤 {lang === 'hi' ? '"सिर में बहुत तेज दर्द और चक्कर"' : '"Severe headache and dizziness"'}
+                </button>
+                <button type="button" className="voice-chip" onClick={() => simulateVoiceCommand(lang === 'hi' ? '२ दिन से तेज बुखार और ठंड' : 'High fever and chills for 2 days')}>
+                  🎤 {lang === 'hi' ? '"२ दिन से तेज बुखार और ठंड"' : '"High fever for 2 days"'}
                 </button>
               </>
             )}
-
-            {step === 'CONSENT' && (
+            {currentStageNum === 2 && (
               <>
-                <button type="button" className="voice-chip" onClick={() => simulateVoiceCommand('हाँ, मैं सहमत हूँ')}>
-                  🎤 "हाँ, मैं सहमत हूँ (I Agree)"
+                <button type="button" className="voice-chip" onClick={() => simulateVoiceCommand('२ दिन से')}>
+                  🎤 "२ दिन से"
                 </button>
-                <button type="button" className="voice-chip" onClick={() => simulateVoiceCommand('पीछे जाएं')}>
-                  🎤 "पीछे जाएं (Back)"
+                <button type="button" className="voice-chip" onClick={() => simulateVoiceCommand('१ हफ्ते से')}>
+                  🎤 "१ हफ्ते से"
+                </button>
+                <button type="button" className="voice-chip" onClick={() => simulateVoiceCommand('आज सुबह से')}>
+                  🎤 "आज सुबह से"
                 </button>
               </>
             )}
-
-            {step === 'IDENTIFICATION' && (
+            {currentStageNum === 3 && (
               <>
-                <button type="button" className="voice-chip" onClick={() => simulateVoiceCommand('मीना देवी')}>
-                  🎤 "मीना देवी (डेमो मरीज भरें)"
+                <button type="button" className="voice-chip" onClick={() => simulateVoiceCommand('सिर के दाहिने हिस्से में')}>
+                  🎤 "सिर के दाहिने हिस्से में"
                 </button>
-                <button type="button" className="voice-chip" onClick={() => simulateVoiceCommand('आगे बढ़ें')}>
-                  🎤 "आगे बढ़ें (Proceed)"
+                <button type="button" className="voice-chip" onClick={() => simulateVoiceCommand('सीने के बीच में भारीपन')}>
+                  🎤 "सीने के बीच में भारीपन"
                 </button>
-                <button type="button" className="voice-chip" onClick={() => simulateVoiceCommand('पीछे जाएं')}>
-                  🎤 "पीछे जाएं"
+                <button type="button" className="voice-chip" onClick={() => simulateVoiceCommand('पेट के ऊपरी भाग में')}>
+                  🎤 "पेट के ऊपरी भाग में"
                 </button>
               </>
             )}
-
-            {step === 'INTERVIEW' && (
+            {currentStageNum === 4 && (
               <>
-                {currentStageNum === 1 && (
-                  <>
-                    <button type="button" className="voice-chip" onClick={() => simulateVoiceCommand(lang === 'hi' ? 'सीने में तेज दर्द और सांस फूल रही है' : 'Severe chest pain and breathlessness')}>
-                      🎤 {lang === 'hi' ? '"सीने में तेज दर्द और सांस फूल रही है"' : '"Chest pain and breathlessness"'}
-                    </button>
-                    <button type="button" className="voice-chip" onClick={() => simulateVoiceCommand(lang === 'hi' ? 'सिर में बहुत तेज दर्द और चक्कर आ रहे हैं' : 'Severe headache and dizziness')}>
-                      🎤 {lang === 'hi' ? '"सिर में बहुत तेज दर्द और चक्कर"' : '"Severe headache and dizziness"'}
-                    </button>
-                    <button type="button" className="voice-chip" onClick={() => simulateVoiceCommand(lang === 'hi' ? '२ दिन से तेज बुखार और ठंड' : 'High fever and chills for 2 days')}>
-                      🎤 {lang === 'hi' ? '"२ दिन से तेज बुखार और ठंड"' : '"High fever for 2 days"'}
-                    </button>
-                  </>
-                )}
-                {currentStageNum === 2 && (
-                  <>
-                    <button type="button" className="voice-chip" onClick={() => simulateVoiceCommand('२ दिन से')}>
-                      🎤 "२ दिन से"
-                    </button>
-                    <button type="button" className="voice-chip" onClick={() => simulateVoiceCommand('१ हफ्ते से')}>
-                      🎤 "१ हफ्ते से"
-                    </button>
-                    <button type="button" className="voice-chip" onClick={() => simulateVoiceCommand('आज सुबह से')}>
-                      🎤 "आज सुबह से"
-                    </button>
-                  </>
-                )}
-                {currentStageNum === 3 && (
-                  <>
-                    <button type="button" className="voice-chip" onClick={() => simulateVoiceCommand('सिर के दाहिने हिस्से में')}>
-                      🎤 "सिर के दाहिने हिस्से में"
-                    </button>
-                    <button type="button" className="voice-chip" onClick={() => simulateVoiceCommand('सीने के बीच में भारीपन')}>
-                      🎤 "सीने के बीच में भारीपन"
-                    </button>
-                    <button type="button" className="voice-chip" onClick={() => simulateVoiceCommand('पेट के ऊपरी भाग में')}>
-                      🎤 "पेट के ऊपरी भाग में"
-                    </button>
-                  </>
-                )}
-                {currentStageNum === 4 && (
-                  <>
-                    <button type="button" className="voice-chip" onClick={() => simulateVoiceCommand('दर्द 8 है (तेज दर्द)')}>
-                      🎤 "दर्द 8 (तेज दर्द)"
-                    </button>
-                    <button type="button" className="voice-chip" onClick={() => simulateVoiceCommand('दर्द 4 है (मध्यम दर्द)')}>
-                      🎤 "दर्द 4 (मध्यम दर्द)"
-                    </button>
-                    <button type="button" className="voice-chip" onClick={() => simulateVoiceCommand('सांस फूलती है')}>
-                      🎤 "सांस फूलती है"
-                    </button>
-                  </>
-                )}
-                {currentStageNum >= 5 && currentQuestion?.options?.slice(0, 3).map((opt: any, idx: number) => (
-                  <button key={idx} type="button" className="voice-chip" onClick={() => simulateVoiceCommand(opt.label || String(opt.value))}>
-                    🎤 "{opt.label || opt.value}"
-                  </button>
-                ))}
-                <button type="button" className="voice-chip" onClick={() => simulateVoiceCommand('आगे बढ़ें')}>
-                  🎤 "आगे बढ़ें (Next)"
+                <button type="button" className="voice-chip" onClick={() => simulateVoiceCommand('दर्द 8 है (तेज दर्द)')}>
+                  🎤 "दर्द 8 (तेज दर्द)"
                 </button>
-                <button type="button" className="voice-chip" onClick={() => simulateVoiceCommand('दोबारा बोलो')}>
-                  🎤 "दोबारा बोलो (Repeat)"
+                <button type="button" className="voice-chip" onClick={() => simulateVoiceCommand('दर्द 4 है (मध्यम दर्द)')}>
+                  🎤 "दर्द 4 (मध्यम दर्द)"
+                </button>
+                <button type="button" className="voice-chip" onClick={() => simulateVoiceCommand('सांस फूलती है')}>
+                  🎤 "सांस फूलती है"
                 </button>
               </>
             )}
-
-            {step === 'DOCUMENTS' && (
-              <>
-                <button type="button" className="voice-chip" onClick={() => simulateVoiceCommand('टोकन प्राप्त करें')}>
-                  🎤 "टोकन प्राप्त करें (Generate Token)"
-                </button>
-                <button type="button" className="voice-chip" onClick={() => simulateVoiceCommand('पीछे जाएं')}>
-                  🎤 "पीछे जाएं"
-                </button>
-              </>
-            )}
-
-            {step === 'TICKET' && (
-              <button type="button" className="voice-chip" onClick={() => simulateVoiceCommand('नया मरीज शुरू करें')}>
-                🎤 "नया मरीज शुरू करें (Start New Patient)"
+            {currentStageNum >= 5 && currentQuestion?.options?.slice(0, 3).map((opt: any, idx: number) => (
+              <button key={idx} type="button" className="voice-chip" onClick={() => simulateVoiceCommand(opt.label || String(opt.value))}>
+                🎤 "{opt.label || opt.value}"
               </button>
-            )}
-
+            ))}
+            <button type="button" className="voice-chip" onClick={() => simulateVoiceCommand('आगे बढ़ें')}>
+              🎤 "आगे बढ़ें (Next)"
+            </button>
+            <button type="button" className="voice-chip" onClick={() => simulateVoiceCommand('दोबारा बोलो')}>
+              🎤 "दोबारा बोलो (Repeat)"
+            </button>
             <button type="button" className="voice-chip" onClick={() => simulateVoiceCommand('रीसेट')} style={{ color: '#dc2626' }}>
               🔄 "रीसेट (Reset)"
             </button>
           </div>
         </div>
       </div>
+      )}
 
 
       {/* Red Flag Emergency Banner */}
@@ -1354,14 +1302,9 @@ export function App() {
             <h2 style={{ fontSize: '28px', fontWeight: '800' }}>
               {lang === 'hi' ? 'रोगी की पहचान (Patient Details)' : 'Patient Identification'}
             </h2>
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <button className="btn btn-secondary" onClick={() => simulateVoiceCommand('मीना देवी')} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                🎤 {lang === 'hi' ? 'वॉयस से भरें: "मीना देवी"' : 'Voice Fill: "Meena Devi"'}
-              </button>
-              <button className="btn btn-secondary" onClick={loadMeenaDemo}>
-                ⚡ {lang === 'hi' ? 'डेमो मरीज (Meena Devi)' : 'Load Demo'}
-              </button>
-            </div>
+            <button className="btn btn-secondary" onClick={loadMeenaDemo} style={{ minHeight: '44px', padding: '8px 18px', fontSize: '15px' }}>
+              ⚡ {lang === 'hi' ? 'डेमो मरीज लोड करें (Meena Devi)' : 'Load Demo (Meena Devi)'}
+            </button>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
