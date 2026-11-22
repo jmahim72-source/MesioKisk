@@ -93,7 +93,7 @@ def init_db(db: Session = None):
                 encounter_number="OPD-2026-001245",
                 encounter_date=datetime.now().strftime("%Y-%m-%d"),
                 encounter_type="OUTPATIENT",
-                department="Ayurveda OPD",
+                department="General Medicine OPD",
                 practitioner_id="usr_doctor_01",
                 queue_token="A-042",
                 status="READY_FOR_REVIEW",
@@ -103,30 +103,17 @@ def init_db(db: Session = None):
             db.add(encounter)
             db.flush()
 
-            # Seed Ayurvedic Assessment
-            ayur = AyurvedicAssessment(
-                id="ayur_meena_01",
-                encounter_id=encounter.id,
-                prakriti_dominant_dosha="VATA_PITTA",
-                prakriti_vata_score=8,
-                prakriti_pitta_score=6,
-                prakriti_kapha_score=3,
-                agni_type="VISHAMAGNI",
-                koshtha_type="KRURA",
-                ahara_vihara_notes="Irregular eating times, dry foods, disturbed sleep."
-            )
-            db.add(ayur)
-
             # Seed Red Flag Alert
             red_flag = RedFlagAlert(
                 id="alert_meena_01",
                 encounter_id=encounter.id,
                 rule_id="CARDIAC_001",
-                alert_type="Possible Acute Coronary Syndrome",
+                alert_type="Acute Coronary Syndrome / Cardiac Emergency",
                 severity="CRITICAL",
                 status="ACTIVE",
-                triggered_symptoms=["Chest pain", "Breathlessness", "Cold sweating"],
-                suggested_action="Immediate triage assessment recommended. Perform stat ECG and inform attending physician."
+                triggered_symptoms=["chest pain", "breathlessness", "cold sweating"],
+                suggested_action="Immediate 12-lead ECG, troponin, continuous vitals, and urgent cardiologist review.",
+                clinical_context="Triggered by retrosternal chest pain + breathlessness + sweating"
             )
             db.add(red_flag)
 
@@ -185,12 +172,8 @@ def init_db(db: Session = None):
                         {"name": "Telmisartan", "dose": "40 mg", "frequency": "ONCE_DAILY"}
                     ],
                     "allergies": ["No known drug allergies"],
-                    "ayurvedic_assessment": {
-                        "prakriti": "VATA_PITTA",
-                        "agni": "VISHAMAGNI",
-                        "koshtha": "KRURA"
-                    },
-                    "red_flags": ["Possible Acute Coronary Syndrome (CARDIAC_001)"]
+                    "functional_impact": "Severe functional limitation due to acute chest heaviness, cold sweating, and shortness of breath.",
+                    "red_flags": ["Acute Coronary Syndrome (CARDIAC_001) - Immediate 12-lead ECG, troponin, and urgent cardiologist review required."]
                 },
                 summary_text="Patient Meena Devi (58 F) presented with acute chest discomfort and shortness of breath. History of Type 2 Diabetes and Hypertension.",
                 generated_by="AI_SERVICE",

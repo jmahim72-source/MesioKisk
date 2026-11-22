@@ -1,0 +1,38 @@
+======================================================================
+          CENTRAL PATHOLOGY & DIAGNOSTIC BIOCHEMISTRY LAB
+               NATIONAL HEALTH ACCREDITED LABORATORY
+======================================================================
+Patient Name: Meena Devi                     Lab ID: LAB-2026-9941
+Age/Gender: 58 Yrs / Female                  Collection Date: 14-Jan-2026
+Referring Doctor: Dr. A. K. Verma, MD         Reporting Date: 14-Jan-2026
+Specimen: Fasting Fluoride Plasma & Serum    Status: FINAL VERIFIED
+
+BIOCHEMICAL INVESTIGATION REPORT:
+-----------------------------------------------------------------------------------
+TEST DESCRIPTION                  RESULT       UNITS      REFERENCE INTERVAL   FLAG
+-----------------------------------------------------------------------------------
+Fasting Blood Sugar (FBS)          168.0       mg/dL      70.0 - 100.0         HIGH
+Post Prandial Blood Sugar (PPBS)   242.0       mg/dL      < 140.0              HIGH
+HbA1c (Glycated Hemoglobin)         8.4         %          < 5.7 (Normal)       ELEVATED
+                                                          5.7 - 6.4 (Prediabetes)
+                                                          >= 6.5 (Diabetic)
+Average Estimated Glucose (eAG)    194.0       mg/dL      ---                  ELEVATED
+
+Serum Creatinine                   0.92        mg/dL      0.60 - 1.20          NORMAL
+Blood Urea Nitrogen (BUN)          18.5        mg/dL      7.0 - 20.0           NORMAL
+Total Cholesterol                  215.0       mg/dL      < 200.0              BORDERLINE
+Serum Triglycerides                190.0       mg/dL      < 150.0              HIGH
+HDL Cholesterol (Good)             39.0        mg/dL      > 50.0               LOW
+LDL Cholesterol (Calculated)       138.0       mg/dL      < 100.0              HIGH
+-----------------------------------------------------------------------------------
+
+Clinical Impression:
+  * Glycemic parameters indicate poor glycemic control (HbA1c 8.4%, FBS 168 mg/dL).
+  * Mixed dyslipidemia with elevated triglycerides and LDL.
+  * Renal function parameters (Serum Creatinine 0.92 mg/dL) within normal limits.
+
+Checked By: S. Sharma, MSc (Biochem)
+Reporting Pathologist:
+Dr. R. K. Saxena, MD (Pathology)
+Senior Consultant Biochemist & Lab Director
+======================================================================

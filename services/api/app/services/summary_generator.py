@@ -64,21 +64,14 @@ class SummaryGenerator:
                 if cond and cond not in past_medical:
                     past_medical.append(cond)
 
-        # Ayurvedic Assessment
-        ayurvedic_summary = {}
-        if ayurvedic_data:
-            ayurvedic_summary = {
-                "prakriti": getattr(ayurvedic_data, "prakriti_dominant_dosha", "VATA_PITTA") or "VATA_PITTA",
-                "agni": getattr(ayurvedic_data, "agni_type", "VISHAMAGNI") or "VISHAMAGNI",
-                "koshtha": getattr(ayurvedic_data, "koshtha_type", "MADHYAMA") or "MADHYAMA",
-                "notes": getattr(ayurvedic_data, "ahara_vihara_notes", "Balanced vegetarian diet")
-            }
-        else:
-            ayurvedic_summary = {
-                "prakriti": "VATA_PITTA",
-                "agni": "VISHAMAGNI",
-                "koshtha": "MADHYAMA"
-            }
+        # Functional & Lifestyle Impact
+        functional_impact = "Patient reports mild fatigue and sleep disturbance associated with current symptoms."
+        for resp in interview_responses:
+            qid = getattr(resp, "question_id", "")
+            raw = getattr(resp, "raw_text", "") or ""
+            if "stage_7" in qid or "lifestyle" in qid or "impact" in qid:
+                if raw:
+                    functional_impact = raw
 
         # Red Flags
         red_flag_list = [rf.suggested_action if hasattr(rf, "suggested_action") else str(rf) for rf in red_flags]
@@ -91,7 +84,7 @@ class SummaryGenerator:
             "past_medical_history": past_medical or ["None reported"],
             "medications": medications or [{"name": "No current medication", "dose": "", "frequency": ""}],
             "allergies": allergies or ["No known allergies"],
-            "ayurvedic_assessment": ayurvedic_summary,
+            "functional_impact": functional_impact,
             "red_flags": red_flag_list
         }
 

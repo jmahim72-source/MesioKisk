@@ -87,11 +87,11 @@ class DialogueEngine:
             "q_drug_allergies_001"
         ])
 
-        # Ayurvedic Dashavidha Pariksha
+        # Universal Functional & Lifestyle Impact
         plan.extend([
-            "q_ayurvedic_prakriti_body_001",
-            "q_ayurvedic_agni_digestion_001",
-            "q_ayurvedic_koshtha_bowel_001"
+            "q_lifestyle_activity_impact_001",
+            "q_sleep_pattern_001",
+            "q_appetite_diet_001"
         ])
 
         return plan

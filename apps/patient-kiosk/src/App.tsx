@@ -16,7 +16,7 @@ const STAGE_STEPS = [
   { num: 4, hi: 'गंभीर लक्षण', en: 'Red Flags & Pain' },
   { num: 5, hi: 'पूर्व इतिहास', en: 'Medical History' },
   { num: 6, hi: 'दवा व एलर्जी', en: 'Meds & Allergies' },
-  { num: 7, hi: 'आयुर्वेदिक प्रकृति', en: 'Ayurvedic Profile' }
+  { num: 7, hi: 'जीवनशैली व प्रभाव', en: 'Lifestyle & Impact' }
 ];
 
 export function App() {
@@ -75,6 +75,11 @@ export function App() {
   const restartTimeoutRef = useRef<any>(null);
   const audioContextRef = useRef<any>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
+  const langRef = useRef<'hi' | 'en'>(lang);
+
+  useEffect(() => {
+    langRef.current = lang;
+  }, [lang]);
 
   useEffect(() => {
     resetIdleTimer();
@@ -498,15 +503,16 @@ export function App() {
       const rec = new SpeechRec();
       rec.continuous = true;
       rec.interimResults = true;
-      rec.lang = voiceLang;
+      const targetSpeechLang = langRef.current === 'en' ? 'en-IN' : 'hi-IN';
+      rec.lang = targetSpeechLang;
       rec.maxAlternatives = 1;
 
       rec.onstart = () => {
         setVoiceError(null);
         setVoiceStatus(
-          voiceLang === 'hi-IN'
-            ? '🔴 सुन रहे हैं (हिंदी)... कृपया बोलें'
-            : '🔴 Listening (English)... please speak now'
+          targetSpeechLang === 'en-IN'
+            ? '🔴 Listening in English... please speak'
+            : '🔴 सुन रहे हैं (हिंदी)... कृपया बोलें'
         );
       };
 
@@ -647,6 +653,11 @@ export function App() {
 
   const handleLanguageSelect = (selectedLang: 'hi' | 'en') => {
     setLang(selectedLang);
+    langRef.current = selectedLang;
+    setVoiceLang(selectedLang === 'en' ? 'en-IN' : 'hi-IN');
+    if (isListeningRef.current && recognitionInstanceRef.current) {
+      try { recognitionInstanceRef.current.abort(); } catch (e) {}
+    }
     setStep('CONSENT');
     playAudio(
       selectedLang === 'hi'
@@ -785,39 +796,38 @@ export function App() {
           </div>
           <div>
             <div className="brand-title">मेडीकियोस्क | MediKiosk</div>
-            <div className="brand-sub">AI Clinical Intake & Triage Terminal • AIIA Delhi</div>
+            <div className="brand-sub">AI Clinical Intake & Emergency Triage Terminal</div>
           </div>
         </div>
 
         <div className="header-actions">
-          {step === 'INTERVIEW' && (
-            <button
-              className={`btn ${isListening ? 'btn-danger' : 'btn-primary'}`}
-              onClick={toggleVoiceInput}
-              style={{
-                padding: '8px 16px',
-                fontSize: '15px',
-                borderRadius: '24px',
-                boxShadow: isListening ? '0 0 16px rgba(220, 38, 38, 0.5)' : undefined
-              }}
-              title={isListening ? 'माइक बंद करें (Stop Listening)' : 'माइक शुरू करें (Start Voice Assistant)'}
-            >
-              {isListening ? <MicOff size={18} /> : <Mic size={18} />}
-              <span>{isListening ? (lang === 'hi' ? 'माइक सक्रिय' : 'Mic Active') : (lang === 'hi' ? 'वॉयस शुरू' : 'Voice On')}</span>
-            </button>
-          )}
-
           {step !== 'LANGUAGE' && (
             <div className="lang-toggle">
               <button
                 className={`lang-btn ${lang === 'hi' ? 'active' : ''}`}
-                onClick={() => { setLang('hi'); if (currentQuestion?.localized_text) playAudio(currentQuestion.localized_text); }}
+                onClick={() => {
+                  setLang('hi');
+                  langRef.current = 'hi';
+                  setVoiceLang('hi-IN');
+                  if (isListeningRef.current && recognitionInstanceRef.current) {
+                    try { recognitionInstanceRef.current.abort(); } catch (e) {}
+                  }
+                  if (currentQuestion?.localized_text) playAudio(currentQuestion.localized_text);
+                }}
               >
                 हिंदी
               </button>
               <button
                 className={`lang-btn ${lang === 'en' ? 'active' : ''}`}
-                onClick={() => { setLang('en'); if (currentQuestion?.localized_text) playAudio(currentQuestion.localized_text); }}
+                onClick={() => {
+                  setLang('en');
+                  langRef.current = 'en';
+                  setVoiceLang('en-IN');
+                  if (isListeningRef.current && recognitionInstanceRef.current) {
+                    try { recognitionInstanceRef.current.abort(); } catch (e) {}
+                  }
+                  if (currentQuestion?.text) playAudio(currentQuestion.text);
+                }}
               >
                 English
               </button>
@@ -830,385 +840,35 @@ export function App() {
         </div>
       </header>
 
-      {/* VOICE ASSISTANT HUD BAR - ONLY SHOWN DURING CLINICAL INTERVIEW */}
-      {step === 'INTERVIEW' && (
-        <div style={{
-          background: isListening ? '#fef2f2' : 'var(--bg-card)',
-          border: isListening ? '2px solid #ef4444' : '1px solid var(--border-color)',
-          borderRadius: '16px',
-          padding: '16px 20px',
-          marginBottom: '20px',
-          boxShadow: isListening ? '0 4px 20px rgba(239, 68, 68, 0.25)' : 'var(--shadow-sm)',
-          transition: 'all 0.3s ease'
-        }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{
-              width: '46px',
-              height: '46px',
-              borderRadius: '50%',
-              background: isListening ? '#ef4444' : 'var(--primary)',
-              color: 'white',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: isListening ? '0 0 16px rgba(239, 68, 68, 0.6)' : undefined,
-              animation: isListening ? 'pulse 1.2s infinite' : undefined
-            }}>
-              {isListening ? <MicOff size={24} /> : <Mic size={24} />}
-            </div>
-            <div>
-              <div style={{ fontSize: '18px', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <span>{lang === 'hi' ? '🎙️ AI वॉयस असिस्टेंट' : '🎙️ AI Voice Assistant'}</span>
-                <span style={{
-                  fontSize: '12px',
-                  padding: '3px 10px',
-                  borderRadius: '12px',
-                  fontWeight: '700',
-                  background: isListening ? '#dc2626' : '#e2e8f0',
-                  color: isListening ? 'white' : 'var(--text-muted)'
-                }}>
-                  {isListening ? (lang === 'hi' ? '🔴 सुन रहे हैं...' : '🔴 Listening...') : (lang === 'hi' ? 'स्टैंडबाय' : 'Standby')}
-                </span>
-
-                {/* Real-time VU Volume Meter dots when listening */}
-                {isListening && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '3px', marginLeft: '6px' }} title="Microphone Live Audio Level">
-                    {[10, 20, 35, 50, 70, 85].map((lvl, idx) => (
-                      <div
-                        key={idx}
-                        style={{
-                          width: '5px',
-                          height: `${10 + idx * 3}px`,
-                          borderRadius: '2px',
-                          background: micVolume >= lvl ? (idx > 4 ? '#ef4444' : idx > 2 ? '#f59e0b' : '#10b981') : '#cbd5e1',
-                          transition: 'background 0.08s ease'
-                        }}
-                      />
-                    ))}
-                    <span style={{
-                      fontSize: '12px',
-                      color: micVolume > 10 ? '#059669' : '#64748b',
-                      fontWeight: '800',
-                      marginLeft: '4px',
-                      background: micVolume > 10 ? '#dcfce7' : '#f1f5f9',
-                      padding: '2px 6px',
-                      borderRadius: '6px'
-                    }}>
-                      {micVolume}%
-                    </span>
-                  </div>
-                )}
-              </div>
-              <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-                {micTrackInfo?.label
-                  ? (lang === 'hi' ? `माइक: ${micTrackInfo.label}` : `Mic: ${micTrackInfo.label}`)
-                  : (lang === 'hi' ? 'माइक से बोलें या नीचे दिए गए किसी भी वॉयस कमांड पर टैप करें' : 'Speak into your mic or tap any instant voice command chip')}
-              </div>
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-            {/* Microphone Device Selector (if multiple mics exist) */}
-            {availableMics.length > 1 && (
-              <select
-                value={selectedAudioDeviceId}
-                onChange={(e) => handleDeviceChange(e.target.value)}
-                style={{
-                  padding: '6px 10px',
-                  fontSize: '12px',
-                  fontWeight: '600',
-                  borderRadius: '10px',
-                  border: '1px solid #cbd5e1',
-                  background: 'white',
-                  maxWidth: '170px'
-                }}
-                title="Select Microphone Device"
-              >
-                <option value="">{lang === 'hi' ? '🎙️ डिफ़ॉल्ट माइक' : '🎙️ Default Mic'}</option>
-                {availableMics.map((m, idx) => (
-                  <option key={m.deviceId || idx} value={m.deviceId}>
-                    {m.label || `Microphone ${idx + 1}`}
-                  </option>
-                ))}
-              </select>
-            )}
-
-            {/* 3-Second Echo Test Button */}
-            <button
-              type="button"
-              onClick={runEchoTest}
-              disabled={echoTestState !== 'idle'}
-              className="btn btn-secondary"
-              style={{
-                minHeight: '40px',
-                padding: '6px 12px',
-                fontSize: '12px',
-                fontWeight: '700',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                background: echoTestState === 'recording' ? '#fee2e2' : echoTestState === 'playing' ? '#ecfdf5' : undefined,
-                borderColor: echoTestState === 'recording' ? '#ef4444' : echoTestState === 'playing' ? '#10b981' : undefined
-              }}
-              title="Record 3 seconds of your voice and hear it played right back"
-            >
-              {echoTestState === 'recording' ? (
-                <>
-                  <Radio size={14} color="#dc2626" className="animate-pulse" />
-                  <span style={{ color: '#dc2626' }}>{lang === 'hi' ? '🔴 बोलें (3s रिकॉर्डिंग)...' : '🔴 Speak now (3s)...'}</span>
-                </>
-              ) : echoTestState === 'playing' ? (
-                <>
-                  <Volume2 size={14} color="#059669" />
-                  <span style={{ color: '#059669' }}>{lang === 'hi' ? '🔊 आवाज सुन रहे हैं...' : '🔊 Playing back...'}</span>
-                </>
-              ) : echoTestState === 'done' ? (
-                <>
-                  <CheckCircle2 size={14} color="#059669" />
-                  <span style={{ color: '#059669' }}>{lang === 'hi' ? 'टेस्ट सफल!' : 'Echo Test OK!'}</span>
-                </>
-              ) : (
-                <>
-                  <Volume2 size={14} />
-                  <span>{lang === 'hi' ? 'माइक टेस्ट' : 'Test Mic'}</span>
-                </>
-              )}
-            </button>
-
-            {/* Speech Language Switcher */}
-            <div style={{ display: 'flex', background: '#e2e8f0', padding: '3px', borderRadius: '20px' }}>
-              <button
-                type="button"
-                onClick={() => {
-                  setVoiceLang('hi-IN');
-                  if (isListeningRef.current) {
-                    safeStartRecognition();
-                  }
-                }}
-                style={{
-                  padding: '4px 10px',
-                  fontSize: '12px',
-                  fontWeight: '700',
-                  borderRadius: '16px',
-                  border: 'none',
-                  background: voiceLang === 'hi-IN' ? 'var(--primary)' : 'transparent',
-                  color: voiceLang === 'hi-IN' ? 'white' : 'var(--text-muted)',
-                  cursor: 'pointer'
-                }}
-              >
-                🇮🇳 हिंदी
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setVoiceLang('en-IN');
-                  if (isListeningRef.current) {
-                    safeStartRecognition();
-                  }
-                }}
-                style={{
-                  padding: '4px 10px',
-                  fontSize: '12px',
-                  fontWeight: '700',
-                  borderRadius: '16px',
-                  border: 'none',
-                  background: voiceLang === 'en-IN' ? 'var(--primary)' : 'transparent',
-                  color: voiceLang === 'en-IN' ? 'white' : 'var(--text-muted)',
-                  cursor: 'pointer'
-                }}
-              >
-                🌐 Eng
-              </button>
-            </div>
-
-            <button
-              className="btn btn-secondary"
-              onClick={() => setShowVoiceSimulator(true)}
-              style={{ minHeight: '40px', padding: '6px 12px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}
-              title="Open Voice Test & Simulator Tool"
-            >
-              <SlidersHorizontal size={16} />
-              <span>{lang === 'hi' ? 'सिमुलेटर' : 'Simulator'}</span>
-            </button>
-
-            <button
-              className={`btn ${isListening ? 'btn-danger' : 'btn-primary'}`}
-              onClick={toggleVoiceInput}
-              style={{ minHeight: '44px', padding: '8px 18px', fontSize: '15px' }}
-            >
-              {isListening ? <MicOff size={18} /> : <Mic size={18} />}
-              <span>{isListening ? (lang === 'hi' ? 'माइक बंद करें' : 'Stop Listening') : (lang === 'hi' ? 'माइक चालू करें' : 'Start Voice Input')}</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Hardware / Windows Mute Warning Banner */}
-        {micTrackInfo?.muted && (
-          <div style={{
-            background: '#fef2f2',
-            border: '2px solid #ef4444',
-            color: '#991b1b',
-            borderRadius: '10px',
-            padding: '10px 14px',
-            marginTop: '10px',
-            fontSize: '13px',
-            fontWeight: '700',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px'
-          }}>
-            <AlertTriangle size={20} color="#dc2626" />
-            <div>
-              <div>{lang === 'hi' ? '⚠️ आपका भौतिक माइक्रोफ़ोन म्यूट (Hardware Muted) है!' : '⚠️ Your Physical Microphone is Muted in Windows/Hardware!'}</div>
-              <div style={{ fontSize: '12px', fontWeight: '500', color: '#b91c1c', marginTop: '2px' }}>
-                {lang === 'hi'
-                  ? 'लैपटॉप कीबोर्ड पर Fn + F4 (या Mic Unmute बटन) दबाएं, या Windows Settings में माइक अनम्यूट करें।'
-                  : 'Press Fn + F4 (or keyboard mic mute key), or unmute in Windows Sound Settings.'}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Live Audio Waves Animation when listening */}
-        {isListening && (
-          <div className="voice-wave" style={{ margin: '10px 0 6px', height: '36px' }}>
-            <div className="wave-bar"></div>
-            <div className="wave-bar"></div>
-            <div className="wave-bar"></div>
-            <div className="wave-bar"></div>
-            <div className="wave-bar"></div>
-          </div>
-        )}
-
-        {/* Recognized transcript preview */}
-        {lastRecognizedText && (
-          <div style={{
-            background: '#ecfdf5',
-            border: '1px solid #a7f3d0',
-            color: '#065f46',
-            borderRadius: '10px',
-            padding: '8px 14px',
-            marginTop: '10px',
-            fontSize: '14px',
-            fontWeight: '700',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px'
-          }}>
-            <Sparkles size={16} color="#059669" />
-            <span>{lang === 'hi' ? 'पहचाना गया (Transcribed):' : 'Recognized:'} "{lastRecognizedText}"</span>
-          </div>
-        )}
-
-        {/* Voice Error Banner */}
-        {voiceError && (
-          <div style={{
-            background: '#fef2f2',
-            border: '1px solid #fecaca',
-            color: '#b91c1c',
-            borderRadius: '10px',
-            padding: '8px 14px',
-            marginTop: '10px',
-            fontSize: '13px',
-            fontWeight: '600'
-          }}>
-            ⚠️ {voiceError}
-          </div>
-        )}
-
-        {/* Dynamic Contextual Voice Commands for Current Screen */}
-        <div style={{ marginTop: '12px', borderTop: '1px dashed #cbd5e1', paddingTop: '10px' }}>
-          <div style={{ fontSize: '12px', fontWeight: '800', color: 'var(--text-muted)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-            {lang === 'hi' ? '⚡ इस स्क्रीन के त्वरित वॉयस कमांड (बोलें या टैप करें):' : '⚡ Voice Commands for this screen (Speak or Tap):'}
-          </div>
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-            {currentStageNum === 1 && (
-              <>
-                <button type="button" className="voice-chip" onClick={() => simulateVoiceCommand(lang === 'hi' ? 'सीने में तेज दर्द और सांस फूल रही है' : 'Severe chest pain and breathlessness')}>
-                  🎤 {lang === 'hi' ? '"सीने में तेज दर्द और सांस फूल रही है"' : '"Chest pain and breathlessness"'}
-                </button>
-                <button type="button" className="voice-chip" onClick={() => simulateVoiceCommand(lang === 'hi' ? 'सिर में बहुत तेज दर्द और चक्कर आ रहे हैं' : 'Severe headache and dizziness')}>
-                  🎤 {lang === 'hi' ? '"सिर में बहुत तेज दर्द और चक्कर"' : '"Severe headache and dizziness"'}
-                </button>
-                <button type="button" className="voice-chip" onClick={() => simulateVoiceCommand(lang === 'hi' ? '२ दिन से तेज बुखार और ठंड' : 'High fever and chills for 2 days')}>
-                  🎤 {lang === 'hi' ? '"२ दिन से तेज बुखार और ठंड"' : '"High fever for 2 days"'}
-                </button>
-              </>
-            )}
-            {currentStageNum === 2 && (
-              <>
-                <button type="button" className="voice-chip" onClick={() => simulateVoiceCommand('२ दिन से')}>
-                  🎤 "२ दिन से"
-                </button>
-                <button type="button" className="voice-chip" onClick={() => simulateVoiceCommand('१ हफ्ते से')}>
-                  🎤 "१ हफ्ते से"
-                </button>
-                <button type="button" className="voice-chip" onClick={() => simulateVoiceCommand('आज सुबह से')}>
-                  🎤 "आज सुबह से"
-                </button>
-              </>
-            )}
-            {currentStageNum === 3 && (
-              <>
-                <button type="button" className="voice-chip" onClick={() => simulateVoiceCommand('सिर के दाहिने हिस्से में')}>
-                  🎤 "सिर के दाहिने हिस्से में"
-                </button>
-                <button type="button" className="voice-chip" onClick={() => simulateVoiceCommand('सीने के बीच में भारीपन')}>
-                  🎤 "सीने के बीच में भारीपन"
-                </button>
-                <button type="button" className="voice-chip" onClick={() => simulateVoiceCommand('पेट के ऊपरी भाग में')}>
-                  🎤 "पेट के ऊपरी भाग में"
-                </button>
-              </>
-            )}
-            {currentStageNum === 4 && (
-              <>
-                <button type="button" className="voice-chip" onClick={() => simulateVoiceCommand('दर्द 8 है (तेज दर्द)')}>
-                  🎤 "दर्द 8 (तेज दर्द)"
-                </button>
-                <button type="button" className="voice-chip" onClick={() => simulateVoiceCommand('दर्द 4 है (मध्यम दर्द)')}>
-                  🎤 "दर्द 4 (मध्यम दर्द)"
-                </button>
-                <button type="button" className="voice-chip" onClick={() => simulateVoiceCommand('सांस फूलती है')}>
-                  🎤 "सांस फूलती है"
-                </button>
-              </>
-            )}
-            {currentStageNum >= 5 && currentQuestion?.options?.slice(0, 3).map((opt: any, idx: number) => (
-              <button key={idx} type="button" className="voice-chip" onClick={() => simulateVoiceCommand(opt.label || String(opt.value))}>
-                🎤 "{opt.label || opt.value}"
-              </button>
-            ))}
-            <button type="button" className="voice-chip" onClick={() => simulateVoiceCommand('आगे बढ़ें')}>
-              🎤 "आगे बढ़ें (Next)"
-            </button>
-            <button type="button" className="voice-chip" onClick={() => simulateVoiceCommand('दोबारा बोलो')}>
-              🎤 "दोबारा बोलो (Repeat)"
-            </button>
-            <button type="button" className="voice-chip" onClick={() => simulateVoiceCommand('रीसेट')} style={{ color: '#dc2626' }}>
-              🔄 "रीसेट (Reset)"
-            </button>
-          </div>
-        </div>
-      </div>
-      )}
-
-
       {/* Red Flag Emergency Banner */}
       {redFlags.length > 0 && (
-        <div className="red-flag-banner">
-          <AlertTriangle size={36} />
-          <div>
-            <div style={{ fontSize: '20px', fontWeight: '800' }}>
-              {lang === 'hi' ? 'आपातकालीन संकेत पहचाने गए (Critical Red Flag)' : 'Emergency Indicator Detected (CARDIAC_001)'}
+        <div className="red-flag-banner" style={{
+          background: '#fef2f2',
+          border: '2px solid #ef4444',
+          borderRadius: '16px',
+          padding: '18px 24px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '16px',
+          marginBottom: '24px',
+          boxShadow: '0 4px 20px rgba(239, 68, 68, 0.25)'
+        }}>
+          <AlertTriangle size={38} color="#dc2626" />
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: '20px', fontWeight: '800', color: '#b91c1c' }}>
+              🚨 {lang === 'hi'
+                ? `आपातकालीन संकेत पहचाने गए: ${redFlags[0]?.alert_type || 'गंभीर ट्राइएज'}`
+                : `Emergency Alert Triggered: ${redFlags[0]?.alert_type || 'Critical Triage'}`}
             </div>
-            <div style={{ fontSize: '15px' }}>
+            <div style={{ fontSize: '15px', color: '#7f1d1d', marginTop: '4px', fontWeight: '600' }}>
               {lang === 'hi'
-                ? 'सीने में दर्द व सांस फूलने के लक्षण। ओपीडी ट्राइएज डेस्क को तुरंत सूचित किया गया है।'
-                : 'Acute chest discomfort & shortness of breath. Triage staff and doctor notified for immediate priority.'}
+                ? (redFlags[0]?.suggested_action_hi || redFlags[0]?.suggested_action || 'प्राथमिकता के आधार पर तुरंत डॉक्टर व ट्राइएज नर्सिंग स्टाफ को सूचित कर दिया गया है।')
+                : (redFlags[0]?.suggested_action || 'Immediate emergency medical review advised. Triage nurse and doctor notified for stat priority.')}
             </div>
           </div>
+          <span style={{ background: '#dc2626', color: 'white', padding: '6px 14px', borderRadius: '20px', fontWeight: '800', fontSize: '13px' }}>
+            {redFlags[0]?.severity || 'CRITICAL'}
+          </span>
         </div>
       )}
 
@@ -1460,78 +1120,25 @@ export function App() {
             </button>
           </div>
 
-          {/* Voice & Text Input Section */}
-          <div style={{ background: '#f8fafc', padding: '24px', borderRadius: '18px', border: '2px dashed var(--primary)', marginBottom: '24px', textAlign: 'center' }}>
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '16px', marginBottom: '16px', flexWrap: 'wrap' }}>
-              <button
-                className={`btn ${isListening ? 'btn-danger' : 'btn-primary'} btn-lg`}
-                onClick={toggleVoiceInput}
-                style={{ minWidth: '240px', boxShadow: isListening ? '0 0 16px rgba(220, 38, 38, 0.4)' : undefined }}
-              >
-                {isListening ? <MicOff size={28} /> : <Mic size={28} />}
-                <span>{isListening ? (lang === 'hi' ? 'बोलना बंद करें' : 'Stop Listening') : (lang === 'hi' ? '🎤 बोलकर बताएं (Speak)' : '🎤 Speak Answer')}</span>
-              </button>
-
-              <button
-                className="btn btn-primary btn-lg"
-                onClick={() => handleAnswerSubmit()}
-                style={{ background: '#059669', borderColor: '#059669' }}
-                title="Submit current answer and proceed"
-              >
-                <CheckCircle2 size={24} />
-                <span>{lang === 'hi' ? 'यह उत्तर जमा करें (Submit)' : 'Submit Answer'}</span>
-              </button>
-            </div>
-
-            {/* Live Audio Activity VU Meter */}
+          {/* Question Input Section */}
+          <div style={{ marginBottom: '24px' }}>
             {isListening && (
               <div style={{
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '8px',
-                background: '#ffffff',
-                border: '1px solid #cbd5e1',
+                background: '#fef2f2',
+                border: '1px solid #fecaca',
+                color: '#dc2626',
                 padding: '6px 16px',
                 borderRadius: '20px',
+                fontSize: '14px',
+                fontWeight: '700',
                 marginBottom: '12px'
               }}>
-                <span style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-muted)' }}>
-                  {lang === 'hi' ? 'माइक ध्वनि स्तर (Mic Level):' : 'Mic Audio Level:'}
-                </span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '3px', height: '18px' }}>
-                  {[10, 25, 40, 55, 70, 85].map((lvl, idx) => (
-                    <div
-                      key={idx}
-                      style={{
-                        width: '6px',
-                        height: `${10 + idx * 3}px`,
-                        borderRadius: '2px',
-                        background: micVolume >= lvl ? (idx > 4 ? '#ef4444' : idx > 2 ? '#f59e0b' : '#10b981') : '#e2e8f0',
-                        transition: 'background 0.08s ease'
-                      }}
-                    />
-                  ))}
-                  <span style={{ fontSize: '12px', fontWeight: '800', color: micVolume > 15 ? '#0d9488' : '#94a3b8', marginLeft: '4px' }}>
-                    {micVolume}%
-                  </span>
-                </div>
-              </div>
-            )}
-
-            {/* Live Voice Status & Diagnostics */}
-            {voiceStatus && (
-              <div style={{
-                fontSize: '15px',
-                fontWeight: '700',
-                color: isListening ? '#dc2626' : '#0d9488',
-                marginBottom: '10px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px'
-              }}>
-                <span>●</span>
-                <span>{voiceStatus}</span>
+                <span style={{ animation: 'pulse 1s infinite' }}>🔴</span>
+                <span>{lang === 'en' ? 'Listening in English... please speak' : 'सुन रहे हैं (हिंदी)... कृपया बोलें'}</span>
+                {micVolume > 0 && <span style={{ color: '#0d9488', fontSize: '12px' }}>({micVolume}%)</span>}
               </div>
             )}
 
@@ -1541,120 +1148,44 @@ export function App() {
                 border: '1px solid #fecaca',
                 color: '#b91c1c',
                 borderRadius: '10px',
-                padding: '10px 14px',
+                padding: '8px 14px',
                 fontSize: '14px',
                 fontWeight: '600',
-                marginBottom: '12px',
-                textAlign: 'center'
+                marginBottom: '12px'
               }}>
                 ⚠️ {voiceError}
               </div>
             )}
 
-            <textarea
-              rows={2}
-              value={answerInput}
-              onChange={(e) => setAnswerInput(e.target.value)}
-              placeholder={lang === 'hi' ? 'अपनी बात बोलें या यहाँ लिखें...' : 'Speak or type your answer here...'}
-              style={{ width: '100%', padding: '16px', fontSize: '22px', borderRadius: '12px', border: '2px solid var(--border-color)', resize: 'none', background: '#ffffff', color: '#0f172a', fontWeight: '600' }}
-            />
-
-            {/* Stage-Specific Clinical Voice Presets (ALL 7 STAGES) */}
-            <div style={{ marginTop: '14px', textAlign: 'left' }}>
-              <div style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-muted)', marginBottom: '8px' }}>
-                {lang === 'hi' ? '⚡ त्वरित वॉयस उत्तर (बोलें या टैप करें):' : '⚡ Quick Spoken Response Presets (Speak or Tap):'}
-              </div>
-              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                {currentStageNum === 1 && [
-                  { hi: 'सुबह से सीने में तेज दर्द और सांस फूल रही है', en: 'Severe chest pain and breathlessness since morning' },
-                  { hi: '२ दिन से सिर में बहुत तेज दर्द है और उल्टी जैसा लग रहा है', en: 'Severe throbbing headache for 2 days with nausea' },
-                  { hi: 'दाहिने घुटने में सूजन है और चलने में तेज दर्द होता है', en: 'Right knee is swollen and painful to walk on' },
-                  { hi: 'पेट में बहुत तेज जलन और गैस बन रही है', en: 'Severe burning stomach pain and acidity' },
-                  { hi: 'तेज बुखार और ठंड लग रही है', en: 'High fever with chills and body ache' }
-                ].map((preset, idx) => (
-                  <button key={idx} type="button" className="voice-chip" onClick={() => simulateVoiceCommand(lang === 'hi' ? preset.hi : preset.en)}>
-                    <span>🎤</span>
-                    <span>{lang === 'hi' ? preset.hi : preset.en}</span>
-                  </button>
-                ))}
-
-                {currentStageNum === 2 && [
-                  { hi: 'आज सुबह से अचानक शुरू हुआ', en: 'Started suddenly this morning' },
-                  { hi: '२ से ३ दिन से लगातार है', en: 'Persisting for 2 to 3 days' },
-                  { hi: 'लगभग १ हफ्ते से है', en: 'For about 1 week' },
-                  { hi: '१ महीने से पुराना दर्द है', en: 'Chronic pain for over a month' }
-                ].map((preset, idx) => (
-                  <button key={idx} type="button" className="voice-chip" onClick={() => simulateVoiceCommand(lang === 'hi' ? preset.hi : preset.en)}>
-                    <span>🎤</span>
-                    <span>{lang === 'hi' ? preset.hi : preset.en}</span>
-                  </button>
-                ))}
-
-                {currentStageNum === 3 && [
-                  { hi: 'सिर के दाहिने हिस्से में तेज खिंचाव', en: 'Right temporal side throbbing pain' },
-                  { hi: 'सीने के बीच में भारी दबाव', en: 'Heavy crushing pressure in center of chest' },
-                  { hi: 'पेट के ऊपरी हिस्से में नाभि के पास', en: 'Upper abdomen near epigastric area' },
-                  { hi: 'दोनों घुटनों और एड़ियों में', en: 'Both knees and ankles' }
-                ].map((preset, idx) => (
-                  <button key={idx} type="button" className="voice-chip" onClick={() => simulateVoiceCommand(lang === 'hi' ? preset.hi : preset.en)}>
-                    <span>🎤</span>
-                    <span>{lang === 'hi' ? preset.hi : preset.en}</span>
-                  </button>
-                ))}
-
-                {currentStageNum === 4 && [
-                  { hi: 'दर्द बहुत तेज है (स्तर ८/१०)', en: 'Very severe pain (Level 8/10)' },
-                  { hi: 'मध्यम दर्द है (स्तर ५/१०)', en: 'Moderate pain (Level 5/10)' },
-                  { hi: 'हल्का दर्द है (स्तर २/१०)', en: 'Mild pain (Level 2/10)' },
-                  { hi: 'सांस फूलती है और पसीना आता है', en: 'Shortness of breath with cold sweating' }
-                ].map((preset, idx) => (
-                  <button key={idx} type="button" className="voice-chip" onClick={() => simulateVoiceCommand(lang === 'hi' ? preset.hi : preset.en)}>
-                    <span>🎤</span>
-                    <span>{lang === 'hi' ? preset.hi : preset.en}</span>
-                  </button>
-                ))}
-
-                {currentStageNum === 5 && [
-                  { hi: 'उच्च रक्तचाप (बीपी) की बीमारी है', en: 'History of Hypertension (High BP)' },
-                  { hi: 'शुगर / मधुमेह (Diabetes) है', en: 'Type 2 Diabetes' },
-                  { hi: 'थायरॉयड की समस्या है', en: 'Thyroid disorder' },
-                  { hi: 'कोई पुरानी बीमारी नहीं है', en: 'No past chronic illness' }
-                ].map((preset, idx) => (
-                  <button key={idx} type="button" className="voice-chip" onClick={() => simulateVoiceCommand(lang === 'hi' ? preset.hi : preset.en)}>
-                    <span>🎤</span>
-                    <span>{lang === 'hi' ? preset.hi : preset.en}</span>
-                  </button>
-                ))}
-
-                {currentStageNum === 6 && [
-                  { hi: 'नियमित बीपी की गोली ले रहे हैं', en: 'Taking daily antihypertensive tablet' },
-                  { hi: 'गैस और एंटासिड सिरप लेते हैं', en: 'Taking antacid / PPI' },
-                  { hi: 'पेनिसिलिन व सल्फा दवा से एलर्जी है', en: 'Allergic to Penicillin and Sulfa' },
-                  { hi: 'कोई दवा एलर्जी नहीं है', en: 'No known drug allergies' }
-                ].map((preset, idx) => (
-                  <button key={idx} type="button" className="voice-chip" onClick={() => simulateVoiceCommand(lang === 'hi' ? preset.hi : preset.en)}>
-                    <span>🎤</span>
-                    <span>{lang === 'hi' ? preset.hi : preset.en}</span>
-                  </button>
-                ))}
-
-                {currentStageNum === 7 && [
-                  { hi: 'वात प्रकृति (सूखापन, जोड़ों में दर्द, अनिद्रा)', en: 'Vata dominant (Dryness, joint pain, restless)' },
-                  { hi: 'पित्त प्रकृति (जलन, गुस्सा, एसिडिटी, पसीना)', en: 'Pitta dominant (Heat sensation, hyperacidity, sweating)' },
-                  { hi: 'कफ प्रकृति (भारीपन, कफ, सुस्ती, वजन)', en: 'Kapha dominant (Heaviness, congestion, lethargy)' },
-                  { hi: 'समान त्रिदोष (संतुलित प्रकृति)', en: 'Balanced Tridosha' }
-                ].map((preset, idx) => (
-                  <button key={idx} type="button" className="voice-chip" onClick={() => simulateVoiceCommand(lang === 'hi' ? preset.hi : preset.en)}>
-                    <span>🎤</span>
-                    <span>{lang === 'hi' ? preset.hi : preset.en}</span>
-                  </button>
-                ))}
-
-                <button type="button" className="voice-chip" onClick={() => simulateVoiceCommand('आगे बढ़ें')}>
-                  <span>🎤</span>
-                  <span>{lang === 'hi' ? 'आगे बढ़ें (Next Stage)' : 'Proceed Next'}</span>
-                </button>
-              </div>
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'stretch' }}>
+              <textarea
+                rows={2}
+                value={answerInput}
+                onChange={(e) => setAnswerInput(e.target.value)}
+                placeholder={lang === 'en' ? 'Speak into mic or type your answer here...' : 'माइक से बोलें या यहाँ अपना उत्तर लिखें...'}
+                style={{ flex: 1, padding: '16px', fontSize: '20px', borderRadius: '14px', border: '2px solid var(--border-color)', resize: 'none', background: '#ffffff', color: '#0f172a', fontWeight: '600' }}
+              />
+              <button
+                type="button"
+                className={`btn ${isListening ? 'btn-danger' : 'btn-primary'}`}
+                onClick={toggleVoiceInput}
+                style={{
+                  minWidth: '84px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: '14px',
+                  gap: '6px',
+                  padding: '10px'
+                }}
+                title={isListening ? (lang === 'en' ? 'Stop mic' : 'माइक बंद करें') : (lang === 'en' ? 'Speak via mic' : 'माइक से बोलें')}
+              >
+                {isListening ? <MicOff size={26} /> : <Mic size={26} />}
+                <span style={{ fontSize: '13px', fontWeight: '700' }}>
+                  {isListening ? (lang === 'en' ? 'Stop' : 'रोकें') : (lang === 'en' ? 'Speak' : 'बोलें')}
+                </span>
+              </button>
             </div>
           </div>
 
@@ -1740,24 +1271,9 @@ export function App() {
                 {lang === 'hi' ? 'डॉक्टर का पर्चा (Prescription)' : 'Doctor Prescription'}
               </div>
               <input type="file" id="rx-upload" style={{ display: 'none' }} onChange={(e) => handleFileUpload(e, 'PRESCRIPTION')} />
-              <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap', marginTop: '12px' }}>
-                <label htmlFor="rx-upload" className="btn btn-primary" style={{ cursor: 'pointer', display: 'inline-flex' }}>
-                  <Upload size={18} /> {lang === 'hi' ? 'पर्चा अपलोड करें' : 'Upload Rx'}
-                </label>
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  style={{ fontSize: '13px', padding: '8px 12px' }}
-                  onClick={() => {
-                    const sampleFile = new File(['Tab Metformin 500mg, Tab Telmisartan 40mg, Tab Pantoprazole 40mg'], 'prescription_meena_devi.txt', { type: 'text/plain' });
-                    KioskAPI.uploadDocument(encounterId, sampleFile, 'PRESCRIPTION');
-                    setUploadedFiles(prev => [...prev, { name: 'prescription_meena_devi.png', type: 'PRESCRIPTION', status: 'OCR Extracted (Metformin 500mg, Telmisartan 40mg, Pantoprazole 40mg)' }]);
-                  }}
-                  title="Load pre-built sample doctor prescription"
-                >
-                  ⚡ {lang === 'hi' ? 'नमूना पर्चा' : 'Sample Rx'}
-                </button>
-              </div>
+              <label htmlFor="rx-upload" className="btn btn-primary" style={{ cursor: 'pointer', display: 'inline-flex', marginTop: '12px' }}>
+                <Upload size={18} /> {lang === 'hi' ? 'पर्चा अपलोड करें' : 'Upload Rx'}
+              </label>
             </div>
 
             <div style={{ border: '2px dashed var(--secondary)', borderRadius: '18px', padding: '30px', textAlign: 'center', background: '#f8fafc' }}>
@@ -1766,24 +1282,9 @@ export function App() {
                 {lang === 'hi' ? 'जांच रिपोर्ट (Lab Report)' : 'Lab Report (Sugar/Blood)'}
               </div>
               <input type="file" id="lab-upload" style={{ display: 'none' }} onChange={(e) => handleFileUpload(e, 'LAB_REPORT')} />
-              <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap', marginTop: '12px' }}>
-                <label htmlFor="lab-upload" className="btn btn-secondary" style={{ cursor: 'pointer', display: 'inline-flex' }}>
-                  <Upload size={18} /> {lang === 'hi' ? 'रिपोर्ट अपलोड करें' : 'Upload Lab Report'}
-                </label>
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  style={{ fontSize: '13px', padding: '8px 12px' }}
-                  onClick={() => {
-                    const sampleFile = new File(['Fasting Blood Sugar (FBS): 168 mg/dL [HIGH], HbA1c: 8.4 % [ELEVATED]'], 'lab_report_blood_sugar_lipid.txt', { type: 'text/plain' });
-                    KioskAPI.uploadDocument(encounterId, sampleFile, 'LAB_REPORT');
-                    setUploadedFiles(prev => [...prev, { name: 'lab_report_blood_sugar_lipid.png', type: 'LAB_REPORT', status: 'OCR Extracted (FBS: 168 mg/dL, HbA1c: 8.4%)' }]);
-                  }}
-                  title="Load pre-built sample blood sugar & lipid test report"
-                >
-                  ⚡ {lang === 'hi' ? 'नमूना रिपोर्ट' : 'Sample Lab Report'}
-                </button>
-              </div>
+              <label htmlFor="lab-upload" className="btn btn-secondary" style={{ cursor: 'pointer', display: 'inline-flex', marginTop: '12px' }}>
+                <Upload size={18} /> {lang === 'hi' ? 'रिपोर्ट अपलोड करें' : 'Upload Lab Report'}
+              </label>
             </div>
           </div>
 
@@ -1822,23 +1323,35 @@ export function App() {
             {lang === 'hi' ? 'आपकी जानकारी सुरक्षित रूप से डॉक्टर के पास पहुँच चुकी है।' : 'Your clinical summary has been sent directly to the attending doctor.'}
           </p>
 
-          <div style={{ background: 'linear-gradient(135deg, #0d9488, #115e59)', color: 'white', padding: '32px', borderRadius: '24px', maxWidth: '420px', margin: '0 auto 30px', boxShadow: '0 10px 30px rgba(13, 148, 136, 0.4)' }}>
-            <div style={{ fontSize: '18px', opacity: 0.9 }}>
-              {lang === 'hi' ? 'आपका टोकन नंबर' : 'YOUR QUEUE TOKEN'}
+          <div style={{
+            background: redFlags.length > 0 ? 'linear-gradient(135deg, #b91c1c, #991b1b)' : 'linear-gradient(135deg, #0d9488, #115e59)',
+            color: 'white',
+            padding: '32px',
+            borderRadius: '24px',
+            maxWidth: '440px',
+            margin: '0 auto 30px',
+            boxShadow: redFlags.length > 0 ? '0 10px 30px rgba(220, 38, 38, 0.45)' : '0 10px 30px rgba(13, 148, 136, 0.4)'
+          }}>
+            <div style={{ fontSize: '18px', opacity: 0.9, letterSpacing: '1px' }}>
+              {redFlags.length > 0 ? '🚨 STAT EMERGENCY TOKEN' : (lang === 'hi' ? 'आपका टोकन नंबर' : 'YOUR QUEUE TOKEN')}
             </div>
             <div style={{ fontSize: '72px', fontWeight: '900', letterSpacing: '2px', margin: '10px 0' }}>
               {queueToken}
             </div>
-            <div style={{ fontSize: '18px', fontWeight: '600', opacity: 0.95 }}>
-              आयुर्वेद ओपीडी | Room 104
+            <div style={{ fontSize: '18px', fontWeight: '700', opacity: 0.95 }}>
+              {redFlags.length > 0
+                ? (lang === 'hi' ? '🚨 आपातकालीन ट्राइएज | कमरा १०१' : '🚨 EMERGENCY STAT TRIAGE | Room 101')
+                : (lang === 'hi' ? 'सामान्य मेडिसिन ओपीडी | कमरा १०४' : 'General Medicine OPD | Room 104')}
             </div>
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', marginBottom: '30px' }}>
             <div style={{ background: '#f8fafc', padding: '16px 24px', borderRadius: '14px', border: '1px solid var(--border-color)' }}>
-              <Clock size={20} color="var(--primary)" />
+              <Clock size={20} color={redFlags.length > 0 ? 'var(--danger)' : 'var(--primary)'} />
               <div style={{ fontSize: '14px', color: 'var(--text-muted)' }}>Estimated Wait</div>
-              <div style={{ fontSize: '18px', fontWeight: '700' }}>~ 5-10 Mins</div>
+              <div style={{ fontSize: '18px', fontWeight: '700', color: redFlags.length > 0 ? '#b91c1c' : '#0f172a' }}>
+                {redFlags.length > 0 ? 'IMMEDIATE (0 Mins)' : '~ 5-10 Mins'}
+              </div>
             </div>
 
             <div style={{ background: '#f8fafc', padding: '16px 24px', borderRadius: '14px', border: '1px solid var(--border-color)' }}>

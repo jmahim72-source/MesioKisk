@@ -110,10 +110,10 @@ class FHIRExporter:
                     }
                 },
                 {
-                    "title": "Ayurvedic Assessment",
+                    "title": "Functional Impact & Clinical Triage",
                     "text": {
                         "status": "generated",
-                        "div": f"<div xmlns=\"http://www.w3.org/1999/xhtml\"><p><strong>Prakriti:</strong> {sections.get('ayurvedic_assessment', {}).get('prakriti', 'N/A')}</p><p><strong>Agni:</strong> {sections.get('ayurvedic_assessment', {}).get('agni', 'N/A')}</p></div>"
+                        "div": f"<div xmlns=\"http://www.w3.org/1999/xhtml\"><p><strong>Daily Impact:</strong> {sections.get('functional_impact', 'Mild functional limitation')}</p><p><strong>Triage Priority:</strong> {encounter.priority}</p></div>"
                     }
                 }
             ]

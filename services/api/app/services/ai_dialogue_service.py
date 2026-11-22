@@ -86,11 +86,11 @@ CLINICAL_STAGES = [
     },
     {
         "stage_num": 7,
-        "stage_id": "AYURVEDIC_PARIKSHA",
-        "category": "ayurvedic",
-        "badge_hi": "आयुर्वेदिक प्रकृति",
-        "badge_en": "Ayurvedic Constitution",
-        "objective": "Assess Prakriti (Vata/Pitta/Kapha), Agni, and Koshtha tailored to symptom.",
+        "stage_id": "LIFESTYLE_AND_IMPACT",
+        "category": "lifestyle",
+        "badge_hi": "जीवनशैली व प्रभाव",
+        "badge_en": "Lifestyle & Daily Impact",
+        "objective": "Assess impact on daily activities, sleep quality, and appetite.",
         "default_input_type": "SINGLE_CHOICE"
     }
 ]
@@ -591,29 +591,27 @@ class ClinicalResponseBasedEngine:
             clinical_reasoning = f"Documenting pharmacological interventions for {s_en} and verifying drug allergy safety prior to physician prescription."
 
         # ─────────────────────────────────────────────────────────────────────
-        # STAGE 7: AYURVEDIC PARIKSHA (Response-Based Dashavidha Pariksha)
+        # STAGE 7: FUNCTIONAL IMPACT & DAILY LIFESTYLE
         # ─────────────────────────────────────────────────────────────────────
         elif stage_num == 7:
             input_type = "SINGLE_CHOICE"
             q_hi = (
-                f"आयुर्वेद के अनुसार आपकी शारीरिक प्रकृति (Prakriti) और पाचन अग्नि कैसी है, "
-                f"जिसका संबंध आपके {s_hi} से हो सकता है?"
+                f"इस {s_hi} से आपकी सामान्य दिनचर्या, नींद और भूख पर क्या असर पड़ रहा है?"
             )
             q_en = (
-                f"According to Ayurveda, what is your Prakriti (body constitution) and digestive fire (Agni), "
-                f"which correlates with your {s_en}?"
+                f"How is this {s_en} affecting your daily routine, sleep, and appetite?"
             )
-            audio_hi = "अपनी शारीरिक प्रकृति व पाचन प्रकार चुनें।"
-            audio_en = "Select your Ayurvedic constitution."
+            audio_hi = "दैनिक दिनचर्या व नींद पर प्रभाव बताएं।"
+            audio_en = "Select how your daily routine and sleep are affected."
             options = [
-                {"value": "VATA_DOMINANT", "label_hi": "वात (Vata): शरीर दुबला/रूखा, जोड़ों में कटकटाहट, बेचैनी, ठंड ज्यादा लगना व अनियमित भूख", "label_en": "Vata: Lean/dry build, joint cracking, anxiety, cold intolerance, irregular appetite"},
-                {"value": "PITTA_DOMINANT", "label_hi": "पित्त (Pitta): शरीर में जलन, अत्यधिक गर्मी लगना, खट्टी डकार, तेज भूख व जल्दी गुस्सा", "label_en": "Pitta: Medium build, burning sensation, heat intolerance, hyperacidity, sharp hunger"},
-                {"value": "KAPHA_DOMINANT", "label_hi": "कफ (Kapha): भारी/स्थूल शरीर, कफ/बलगम बनना, सुस्ती, भारीपन व मंद पाचन", "label_en": "Kapha: Heavy build, sluggishness, phlegm tendency, slow digestion"},
-                {"value": "SAMA_BALANCED", "label_hi": "सम/संतुलित (Sama): संतुलित स्वास्थ्य, सामान्य भूख व नियमित पाचन", "label_en": "Sama: Balanced doshas, normal digestion and steady energy"}
+                {"value": "DISRUPTING_SLEEP", "label_hi": "नींद व आराम में गंभीर बाधा हो रही है", "label_en": "Severe disruption to sleep and rest"},
+                {"value": "LIMITED_ACTIVITY", "label_hi": "सामान्य कामकाज और चलने-फिरने में कठिनाई है", "label_en": "Difficulty performing routine work and mobility"},
+                {"value": "APPETITE_IMPACT", "label_hi": "भूख में कमी और भोजन करने में परेशानी है", "label_en": "Loss of appetite and difficulty eating"},
+                {"value": "MILD_MANAGEABLE", "label_hi": "हल्का असर है, सामान्य दिनचर्या जारी है", "label_en": "Mild impact, able to manage daily routine"}
             ]
             clinical_reasoning = (
-                f"Integrating Dashavidha Pariksha for {s_en} to identify root doshic imbalance (Vata/Pitta/Kapha) "
-                f"and metabolic fire (Agni) for personalized AYUSH clinical management."
+                f"Evaluating functional impairment, sleep disturbance, and dietary impact of {s_en} "
+                f"to gauge clinical severity and patient quality of life."
             )
 
         # Localized text selection

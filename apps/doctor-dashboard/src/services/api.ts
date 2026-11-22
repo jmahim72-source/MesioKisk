@@ -21,7 +21,7 @@ export const DoctorAPI = {
         first_name: 'Dr. Ananya',
         last_name: 'Sharma',
         role: 'DOCTOR',
-        department: 'Ayurveda & General OPD'
+        department: 'General Medicine & Emergency OPD'
       }
     };
   },
@@ -47,7 +47,7 @@ export const DoctorAPI = {
         queue_token: 'A-042',
         status: 'READY_FOR_REVIEW',
         priority: 'EMERGENCY',
-        department: 'Ayurveda OPD',
+        department: 'Emergency & Cardiology OPD',
         chief_complaint: 'Chest pain and breathlessness since morning',
         has_red_flags: true,
         created_at: new Date().toISOString()
@@ -77,12 +77,8 @@ export const DoctorAPI = {
         past_medical_history: ['None reported'],
         medications: [],
         allergies: [],
-        ayurvedic_assessment: {
-          prakriti: 'VATA_PITTA',
-          agni: 'SAMA',
-          koshtha: 'MADHYAMA'
-        },
-        red_flags: []
+        functional_impact: 'Discomfort moderately impacting daily tasks and sleep.',
+        red_flags: ['Possible Acute Coronary Syndrome (CARDIAC_001) - Immediate 12-lead ECG, troponin, and urgent cardiologist review required.']
       },
       documents: []
     };

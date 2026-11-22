@@ -288,66 +288,64 @@ const OFFLINE_QUESTIONS: any[] = [
     required: true
   },
   {
-    id: "q_ayurvedic_prakriti_body_001",
-    category: "ayurvedic",
-    domain: "AYURVEDIC",
-    text: "How would you describe your natural body frame and skin?",
+    id: "q_lifestyle_activity_impact_001",
+    category: "lifestyle",
+    domain: "GENERAL_CLINICAL",
+    text: "How is this symptom affecting your daily work and mobility?",
     localized_text: {
-      en: "How would you describe your body build and skin texture?",
-      hi: "आयुर्वेदिक प्रकृति: आपके शरीर का गठन और त्वचा कैसी रहती है?"
+      en: "How is this symptom affecting your daily activities and mobility?",
+      hi: "दैनिक प्रभाव: इस लक्षण से आपके सामान्य कामकाज और चलने-फिरने पर क्या असर पड़ा है?"
     },
     audio_prompt_text: {
-      en: "Choose your natural body build and skin tendency.",
-      hi: "अपने शरीर और त्वचा की प्रकृति चुनें।"
+      en: "Select how your daily work and mobility are affected.",
+      hi: "दैनिक कामकाज पर प्रभाव चुनें।"
     },
     input_type: "SINGLE_CHOICE",
     options: [
-      { value: "VATA", label: "Thin, lean, dry skin, prefers warmth (Vata)", localized_label: { en: "Thin, dry skin (Vata)", hi: "दुबला शरीर, रूखी त्वचा, ठंड जल्दी लगना (वात)" } },
-      { value: "PITTA", label: "Medium build, warm skin, prone to sweating (Pitta)", localized_label: { en: "Medium, warm skin (Pitta)", hi: "मध्यम शरीर, गर्म त्वचा, पसीना/गर्मी ज्यादा लगना (पित्त)" } },
-      { value: "KAPHA", label: "Broad build, soft/oily skin, gains weight easily (Kapha)", localized_label: { en: "Broad, oily skin (Kapha)", hi: "मजबूत/भारी शरीर, चिकनी त्वचा, वजन जल्दी बढ़ना (कफ)" } }
+      { value: "SEVERE_LIMITATION", label: "Severe difficulty, unable to work or walk easily", localized_label: { en: "Severe difficulty working/walking", hi: "गंभीर कठिनाई, काम करने या चलने में असमर्थ" } },
+      { value: "MODERATE_LIMITATION", label: "Moderate impact, takes extra effort to do tasks", localized_label: { en: "Moderate impact on daily tasks", hi: "मध्यम प्रभाव, काम करने में अधिक परेशानी" } },
+      { value: "MILD_LIMITATION", label: "Mild discomfort, able to continue daily routine", localized_label: { en: "Mild discomfort, managing routine", hi: "हल्की तकलीफ, सामान्य दिनचर्या जारी है" } }
     ],
     required: false
   },
   {
-    id: "q_ayurvedic_agni_digestion_001",
-    category: "ayurvedic",
-    domain: "AYURVEDIC",
-    text: "How is your appetite and digestion usually?",
+    id: "q_sleep_pattern_001",
+    category: "lifestyle",
+    domain: "GENERAL_CLINICAL",
+    text: "How is your sleep and resting pattern?",
     localized_text: {
-      en: "How is your appetite and digestion fire (Agni)?",
-      hi: "अग्नि परीक्षा: आपकी भूख और पाचन क्रिया आमतौर पर कैसी रहती है?"
+      en: "How has your sleep quality been recently?",
+      hi: "नींद की स्थिति: क्या इस समस्या के कारण आपकी नींद प्रभावित हो रही है?"
     },
     audio_prompt_text: {
-      en: "Select your digestion and appetite pattern.",
-      hi: "अपनी भूख और पाचन की स्थिति चुनें।"
+      en: "Select your sleep quality.",
+      hi: "अपनी नींद की स्थिति चुनें।"
     },
     input_type: "SINGLE_CHOICE",
     options: [
-      { value: "VISHAMAGNI", label: "Irregular / Variable appetite, bloating (Vishamagni)", localized_label: { en: "Variable appetite (Vishamagni)", hi: "कभी ज्यादा भूख, कभी बिल्कुल नहीं / पेट फूलना (विषमाग्नि)" } },
-      { value: "TIKSHNAGNI", label: "Intense hunger, fast digestion, acidity (Tikshnagni)", localized_label: { en: "Intense hunger, acidity (Tikshnagni)", hi: "बहुत तेज भूख, तुरंत पचना, जलन/एसिडिटी (तीक्ष्णाग्नि)" } },
-      { value: "MANDAGNI", label: "Low appetite, slow heavy digestion (Mandagni)", localized_label: { en: "Low appetite, heavy (Mandagni)", hi: "कम भूख लगना, भारीपन महसूस होना (मंदाग्नि)" } },
-      { value: "SAMAGNI", label: "Regular normal balanced digestion (Samagni)", localized_label: { en: "Balanced digestion (Samagni)", hi: "संतुलित और नियमित पाचन (समाग्नि)" } }
+      { value: "SEVERELY_DISTURBED", label: "Pain or discomfort wakes me up frequently", localized_label: { en: "Discomfort wakes me up", hi: "तकलीफ के कारण रात में बार-बार नींद खुलती है" } },
+      { value: "DIFFICULTY_FALLING_ASLEEP", label: "Takes longer to fall asleep", localized_label: { en: "Takes longer to sleep", hi: "सोने में सामान्य से अधिक समय लगता है" } },
+      { value: "NORMAL_SLEEP", label: "Normal sound sleep", localized_label: { en: "Normal sleep", hi: "सामान्य और आरामदायक नींद" } }
     ],
     required: false
   },
   {
-    id: "q_ayurvedic_koshtha_bowel_001",
-    category: "ayurvedic",
-    domain: "AYURVEDIC",
-    text: "How is your regular bowel habit (Koshtha)?",
+    id: "q_appetite_diet_001",
+    category: "lifestyle",
+    domain: "GENERAL_CLINICAL",
+    text: "How is your regular appetite and food intake?",
     localized_text: {
-      en: "How are your bowel habits (Koshtha)?",
-      hi: "कोष्ठ परीक्षा: आपका पेट साफ होने की प्रक्रिया कैसी है?"
+      en: "How is your regular appetite and food intake?",
+      hi: "खान-पान व भूख: हाल में आपकी भूख और खान-पान में कोई बदलाव आया है?"
     },
     audio_prompt_text: {
-      en: "Choose your bowel habit type.",
-      hi: "पेट साफ होने की आदत चुनें।"
+      en: "Choose your appetite pattern.",
+      hi: "अपनी भूख की स्थिति चुनें।"
     },
     input_type: "SINGLE_CHOICE",
     options: [
-      { value: "KRURA", label: "Hard / Constipated, requires laxatives (Krura Koshtha)", localized_label: { en: "Hard, constipated (Krura)", hi: "कब्जियत, कठिनाई से पेट साफ होना (क्रूर कोष्ठ)" } },
-      { value: "MRIDU", label: "Soft / Loose, easily affected by milk (Mridu Koshtha)", localized_label: { en: "Soft, loose easily (Mridu)", hi: "जल्दी दस्त होना, दूध से भी पेट साफ होना (मृदु कोष्ठ)" } },
-      { value: "MADHYAMA", label: "Normal, once or twice daily without effort (Madhyama)", localized_label: { en: "Normal regular (Madhyama)", hi: "सामान्य, दिन में 1-2 बार आसानी से (मध्यम कोष्ठ)" } }
+      { value: "POOR_APPETITE", label: "Marked loss of appetite / nausea", localized_label: { en: "Loss of appetite", hi: "भूख में काफी कमी / मिचली" } },
+      { value: "NORMAL_APPETITE", label: "Normal balanced appetite and digestion", localized_label: { en: "Normal appetite", hi: "सामान्य और नियमित भूख" } }
     ],
     required: false
   }
@@ -492,16 +490,16 @@ function getClientNextQuestion(answeredIds: string[], chief: string, lang: strin
       { value: 'NONE', label: lang === 'hi' ? 'कोई दवा नहीं ली और कोई एलर्जी नहीं है' : 'No medications and no known allergies' }
     ];
   } else {
-    badgeHi = 'आयुर्वेदिक प्रकृति';
-    badgeEn = 'Ayurvedic Profile';
+    badgeHi = 'जीवनशैली व प्रभाव';
+    badgeEn = 'Daily Lifestyle & Impact';
     inputType = 'SINGLE_CHOICE';
-    qTextHi = `आयुर्वेद के अनुसार आपकी शारीरिक प्रकृति (Prakriti) और पाचन अग्नि कैसी है, जो इस ${symptomHi} से जुड़ी हो सकती है?`;
-    qTextEn = `According to Ayurveda, what is your Prakriti (constitution) and digestive fire (Agni), correlating with your ${symptomEn}?`;
+    qTextHi = `इस ${symptomHi} से आपकी सामान्य दिनचर्या, नींद और कामकाज पर क्या असर पड़ रहा है?`;
+    qTextEn = `How is this ${symptomEn} affecting your daily routine, sleep, and overall mobility?`;
     options = [
-      { value: 'VATA', label: lang === 'hi' ? 'वात (Vata): सूखापन, जोड़ों में दर्द/कटकटाहट, बेचैनी, ठंड ज्यादा लगना (विषमाग्नि)' : 'Vata: Lean/dry build, joint pain, cold sensitivity (Vishamagni)' },
-      { value: 'PITTA', label: lang === 'hi' ? 'पित्त (Pitta): शरीर में जलन, अत्यधिक गर्मी लगना, खट्टी डकार, तेज भूख (तीक्ष्णाग्नि)' : 'Pitta: Burning sensation, heat sensitivity, hyperacidity (Tikshnagni)' },
-      { value: 'KAPHA', label: lang === 'hi' ? 'कफ (Kapha): भारी शरीर, कफ/बलगम बनना, सुस्ती, मंद पाचन (मंदाग्नि)' : 'Kapha: Heavy build, phlegm, slow digestion (Mandagni)' },
-      { value: 'SAMA', label: lang === 'hi' ? 'सम (Sama): संतुलित स्वास्थ्य व नियमित पाचन (समाग्नि)' : 'Sama: Balanced doshas and steady digestion (Samagni)' }
+      { value: 'SLEEP_DISTURBED', label: lang === 'hi' ? 'नींद व विश्राम में अत्यधिक बाधा हो रही है' : 'Severe disruption to sleep and rest' },
+      { value: 'ROUTINE_LIMITED', label: lang === 'hi' ? 'सामान्य कामकाज और चलने-फिरने में कठिनाई है' : 'Difficulty performing routine tasks and walking' },
+      { value: 'APPETITE_AFFECTED', label: lang === 'hi' ? 'भूख में कमी और भोजन करने में परेशानी है' : 'Loss of appetite and eating difficulty' },
+      { value: 'MILD_MANAGEABLE', label: lang === 'hi' ? 'हल्का असर है, सामान्य दिनचर्या जारी है' : 'Mild discomfort, able to manage daily routine' }
     ];
   }
 
@@ -589,7 +587,7 @@ export const KioskAPI = {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          department: 'Ayurveda & General OPD',
+          department: 'General Medicine & Emergency OPD',
           encounter_type: 'OUTPATIENT',
           chief_complaint_hint: chiefComplaintHint,
           priority: 'ROUTINE'
@@ -626,7 +624,7 @@ export const KioskAPI = {
         body: JSON.stringify({
           language,
           input_preference: 'VOICE_OR_TEXT',
-          modules: ['GENERAL_CLINICAL', 'AYURVEDIC']
+          modules: ['GENERAL_CLINICAL', 'EMERGENCY_TRIAGE']
         })
       });
       if (res.ok) {

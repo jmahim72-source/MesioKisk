@@ -130,7 +130,7 @@ export function App() {
 
         <div style={{ padding: '16px', background: 'rgba(255,255,255,0.05)', borderRadius: '12px' }}>
           <div style={{ fontSize: '14px', fontWeight: '700', color: 'white' }}>Dr. Ananya Sharma</div>
-          <div style={{ fontSize: '12px', color: 'var(--text-sidebar)' }}>AIIA Delhi • Room 104</div>
+          <div style={{ fontSize: '12px', color: 'var(--text-sidebar)' }}>General Medicine & Triage • Room 104</div>
           <div style={{ fontSize: '11px', color: '#34d399', marginTop: '6px' }}>● Online & Authorized</div>
         </div>
       </aside>
@@ -146,7 +146,7 @@ export function App() {
               {currentView === 'AUDIT_LOGS' && 'System Audit Trail & HIPAA Logs'}
             </h1>
             <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-              All India Institute of Ayurveda • Ministry of Ayush • OPD Shift 1
+              AI Clinical Intake & Emergency Triage Terminal • OPD Clinical Care
             </p>
           </div>
 
@@ -162,31 +162,47 @@ export function App() {
           {currentView === 'QUEUE' && (
             <div>
               {/* Emergency Banner if red flag exists in queue */}
-              {queue.some(q => q.has_red_flags) && (
-                <div style={{ background: '#fef2f2', border: '1px solid #f87171', borderRadius: '12px', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                    <AlertTriangle color="var(--danger)" size={28} />
-                    <div>
-                      <div style={{ fontWeight: '800', color: 'var(--danger)', fontSize: '16px' }}>
-                        CRITICAL EMERGENCY TRIAGE ALERT
-                      </div>
-                      <div style={{ fontSize: '14px', color: '#991b1b' }}>
-                        Patient Meena Devi (Token: A-042) flagged for possible Acute Coronary Syndrome.
+              {(() => {
+                const emergencyEncounter = queue.find(q => q.has_red_flags || q.priority === 'EMERGENCY');
+                if (!emergencyEncounter) return null;
+                return (
+                  <div style={{
+                    background: '#fef2f2',
+                    border: '2px solid #ef4444',
+                    borderRadius: '14px',
+                    padding: '16px 20px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    marginBottom: '24px',
+                    boxShadow: '0 4px 16px rgba(239, 68, 68, 0.25)'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                      <AlertTriangle color="#dc2626" size={32} />
+                      <div>
+                        <div style={{ fontWeight: '800', color: '#b91c1c', fontSize: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <span>CRITICAL EMERGENCY TRIAGE ALERT</span>
+                          <span className="badge badge-emergency">STAT PRIORITY</span>
+                        </div>
+                        <div style={{ fontSize: '14px', color: '#991b1b', marginTop: '3px', fontWeight: '600' }}>
+                          Patient {emergencyEncounter.patient_name} (Token: {emergencyEncounter.queue_token}) flagged: {emergencyEncounter.chief_complaint || 'Critical indicators detected'}.
+                        </div>
                       </div>
                     </div>
+                    <button
+                      className="btn btn-danger"
+                      onClick={() => openEncounter(emergencyEncounter)}
+                      style={{ padding: '10px 20px', fontWeight: '700' }}
+                    >
+                      Open Stat Encounter <ArrowRight size={16} />
+                    </button>
                   </div>
-                  <button
-                    className="btn btn-danger"
-                    onClick={() => openEncounter(queue[0])}
-                  >
-                    Open Stat Encounter <ArrowRight size={16} />
-                  </button>
-                </div>
-              )}
+                );
+              })()}
 
               {/* Department Filters */}
               <div style={{ display: 'flex', gap: '10px', marginBottom: '16px' }}>
-                {['all', 'Ayurveda', 'General Medicine'].map((dept) => (
+                {['all', 'EMERGENCY', 'General Medicine', 'Cardiology', 'Pulmonology'].map((dept) => (
                   <button
                     key={dept}
                     className={`btn ${departmentFilter === dept ? 'btn-primary' : 'btn-secondary'}`}
@@ -291,6 +307,38 @@ export function App() {
                 </div>
               </div>
 
+              {/* EMERGENCY RED FLAG BANNER IN WORKSPACE */}
+              {(selectedEncounter.has_red_flags || selectedEncounter.priority === 'EMERGENCY' || (summary.sections?.red_flags && summary.sections.red_flags.length > 0)) && (
+                <div style={{
+                  background: '#fef2f2',
+                  border: '2px solid #ef4444',
+                  borderRadius: '14px',
+                  padding: '16px 20px',
+                  marginBottom: '20px',
+                  marginTop: '16px',
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '14px',
+                  boxShadow: '0 4px 14px rgba(239, 68, 68, 0.2)'
+                }}>
+                  <AlertTriangle color="#dc2626" size={32} style={{ flexShrink: 0, marginTop: '2px' }} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: '800', color: '#b91c1c', fontSize: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <span>CRITICAL TRIAGE RED FLAG DETECTED</span>
+                      <span className="badge badge-emergency">EMERGENCY PRIORITY</span>
+                    </div>
+                    <div style={{ fontSize: '14px', color: '#991b1b', marginTop: '4px', fontWeight: '600' }}>
+                      {summary.sections?.red_flags && summary.sections.red_flags.length > 0
+                        ? summary.sections.red_flags.join(' • ')
+                        : 'Immediate 12-lead ECG, troponin, and urgent cardiologist review required.'}
+                    </div>
+                    <div style={{ marginTop: '8px', fontSize: '13px', color: '#7f1d1d' }}>
+                      ⚡ Recommended Stat Orders: <strong>STAT ECG • Continuous SpO2/BP Monitoring • IV Access • Urgent Physician Bedside Review</strong>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Workspace Split Columns */}
               <div className="workspace-grid">
                 {/* Left Column: AI Summary */}
@@ -328,15 +376,13 @@ export function App() {
                       </div>
                     </div>
 
-                    {/* Ayurvedic Assessment */}
-                    <div style={{ background: '#f0fdf4', padding: '16px', borderRadius: '12px', border: '1px solid #bbf7d0', marginBottom: '16px' }}>
-                      <div style={{ fontSize: '14px', fontWeight: '800', color: 'var(--primary-dark)', marginBottom: '8px' }}>
-                        🌿 Ayurvedic Profile (दशविध परीक्षा)
+                    {/* Functional & Lifestyle Assessment */}
+                    <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid var(--border-color)', marginBottom: '16px' }}>
+                      <div style={{ fontSize: '14px', fontWeight: '800', color: '#0f172a', marginBottom: '6px' }}>
+                        📋 Lifestyle & Functional Impact
                       </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', fontSize: '13px' }}>
-                        <div><strong>Prakriti:</strong> {summary.sections?.ayurvedic_assessment?.prakriti || 'VATA_PITTA'}</div>
-                        <div><strong>Agni:</strong> {summary.sections?.ayurvedic_assessment?.agni || 'VISHAMAGNI'}</div>
-                        <div><strong>Koshtha:</strong> {summary.sections?.ayurvedic_assessment?.koshtha || 'KRURA'}</div>
+                      <div style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: '1.5' }}>
+                        {summary.sections?.functional_impact || 'Moderate functional limitation reported; sleep, stamina, and daily routine impacted by current symptoms.'}
                       </div>
                     </div>
 

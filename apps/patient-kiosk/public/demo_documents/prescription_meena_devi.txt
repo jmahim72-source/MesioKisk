@@ -1,0 +1,46 @@
+======================================================================
+     ALL INDIA INSTITUTE OF AYURVEDA & AIIMS OPD CLINICAL SERVICES
+             CENTRAL DISTRICT HOSPITAL & RESEARCH CENTRE
+======================================================================
+Outpatient Department (OPD) Consultation Card
+OPD No: OPD-2026-001245                    Date: 12-Jan-2026
+Patient Name: Meena Devi                    Age/Gender: 58 Yrs / Female
+ABHA ID: 91-2345-6789-0123                  Contact: +91 98765 43210
+Address: Meerut, Uttar Pradesh              Department: General Medicine
+
+Vitals:
+  * Blood Pressure: 152/94 mmHg (Elevated Stage 2 HTN)
+  * Pulse Rate: 84 bpm (Regular)
+  * Weight: 68 kg | Height: 154 cm | BMI: 28.7 kg/m2
+  * Random Blood Glucose: 210 mg/dL
+
+Clinical Diagnosis:
+  1. Type 2 Diabetes Mellitus (Uncontrolled, duration ~6 yrs)
+  2. Essential Hypertension (Grade II)
+  3. Dyspepsia / GERD
+
+Rx (Medication Prescribed):
+----------------------------------------------------------------------
+1. Tab Metformin Hydrochloride 500 mg
+   Dose: 1 tablet Twice Daily (PO BD) - Immediately after morning & evening meals
+   Quantity: 60 tablets (1 month supply)
+
+2. Tab Telmisartan 40 mg
+   Dose: 1 tablet Once Daily (PO OD) - Every morning at 8:00 AM
+   Quantity: 30 tablets (1 month supply)
+
+3. Tab Pantoprazole 40 mg
+   Dose: 1 tablet Once Daily (PO OD) - 30 minutes before breakfast
+   Quantity: 30 tablets (1 month supply)
+
+Doctor Advice & Orders:
+  * Low sodium (Namak kam) & low carbohydrate diabetic diet.
+  * 30 minutes daily brisk walk.
+  * Stat investigations ordered: Fasting Blood Sugar, PPBS, HbA1c, Serum Lipid Profile.
+  * Review after 1 month with test reports.
+
+Attending Physician:
+Dr. A. K. Verma, MD (Internal Medicine)
+Reg. No: MCI-48291 / DMC-2014
+Senior Consultant Physician, AIIA OPD Block
+======================================================================
