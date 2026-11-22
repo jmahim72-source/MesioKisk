@@ -707,7 +707,7 @@ function getClientNextQuestion(answeredIds: string[], chief: string, lang: strin
   let matchedDomain: DomainKey = 'GENERAL';
   if (t.includes('urine') || t.includes('urination') || t.includes('पेशाब') || t.includes('मूत्र') || t.includes('kidney') || t.includes('गुर्दा') || t.includes('यूरिन') || t.includes('dysuria')) {
     matchedDomain = 'URINARY_KIDNEY';
-  } else if (t.includes('eye') || t.includes('आंख') || t.includes('आँख') || t.includes('दृष्टि') || t.includes('vision') || t.includes('cataract') || t.includes('cornea')) {
+  } else if (t.includes('eye') || t.includes('आंख') || t.includes('आँख') || t.includes('दृष्टि') || t.includes('vision') || t.includes('cataract') || t.includes('cornea') || t.includes('aankh') || t.includes('ankh') || t.includes('eyepain')) {
     matchedDomain = 'EYE_VISION';
   } else if (t.includes('ear') || t.includes('कान') || t.includes('throat') || t.includes('गले') || t.includes('गला') || t.includes('tonsil') || t.includes('nose') || t.includes('नाक') || t.includes('छींक')) {
     matchedDomain = 'ENT_EAR_THROAT';
@@ -1002,7 +1002,7 @@ export const KioskAPI = {
     // Client-side red flag evaluator
     const alerts: any[] = [];
     const t = (clientSession.chiefComplaint + ' ' + rawText).toLowerCase();
-    if (['chest', 'heart', 'सीने', 'दर्द'].some(k => t.includes(k)) && (t.includes('left') || t.includes('arm') || t.includes('sweat') || t.includes('breath') || Number(rawText) >= 7)) {
+    if (['chest', 'heart', 'सीने', 'छाती'].some(k => t.includes(k)) && (t.includes('left') || t.includes('arm') || t.includes('sweat') || t.includes('breath') || Number(rawText) >= 7)) {
       alerts.push({
         rule_id: 'CARDIAC_001',
         alert_type: 'RED_FLAG_CARDIAC',

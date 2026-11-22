@@ -25,8 +25,8 @@ from services.api.app.services.dialogue_engine import DialogueEngine
 
 # ── Groq API ─────────────────────────────────────────────────────────────────
 GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
-PRIMARY_MODEL = "llama-3.3-70b-versatile"
-FALLBACK_MODEL = "llama3-70b-8192"
+PRIMARY_MODEL = "openai/gpt-oss-120b"
+FALLBACK_MODEL = "openai/gpt-oss-20b"
 
 # ── 7-Stage clinical intake protocol ─────────────────────────────────────────
 CLINICAL_STAGES = [
@@ -103,9 +103,9 @@ DOMAIN_CONFIGS = {
         "high_keywords": [
             "urine", "urination", "पेशाब", "मूत्र", "kidney", "गुर्दा", "dysuria", "burning urine",
             "पेशाब में जलन", "blood in urine", "पेशाब में खून", "frequent urination", "बार-बार पेशाब",
-            "bladder", "यूरिन"
+            "bladder", "यूरिन", "peshab", "mutra"
         ],
-        "med_keywords": ["groin", "flank", "pelvic", "जलन", "burning", "drip", "बून्द", "बूंद", "पेड़ू"],
+        "med_keywords": ["groin", "flank", "pelvic", "जलन", "burning", "drip", "बून्द", "बूंद", "पेड़ू", "jalan"],
         "label_hi": "पेशाब, गुर्दा व मूत्र संबंधी",
         "label_en": "Urinary & Renal Tract",
         "symptom_hi": "पेशाब की समस्या",
@@ -135,9 +135,10 @@ DOMAIN_CONFIGS = {
     "EYE_VISION": {
         "high_keywords": [
             "eye", "eyes", "आंख", "आँख", "आंखें", "आँखें", "vision", "रोशनी", "दृष्टि", "cornea",
-            "conjunctivitis", "cataract", "मोतियाबिंद", "redness in eye", "eye pain", "आंख में दर्द"
+            "conjunctivitis", "cataract", "मोतियाबिंद", "redness in eye", "eye pain", "आंख में दर्द",
+            "aankh", "aankhon", "aankhe", "ankh", "ankhon", "drishti", "roshni", "eyepain"
         ],
-        "med_keywords": ["blink", "tear", "पानी", "धुंधला", "blur", "watery", "itching in eye", "चुभन"],
+        "med_keywords": ["blink", "tear", "पानी", "धुंधला", "blur", "watery", "itching in eye", "चुभन", "chubhan", "dhundhla"],
         "label_hi": "आंख व दृष्टि संबंधी लक्षण",
         "label_en": "Ophthalmology & Vision",
         "symptom_hi": "आंख की समस्या",
@@ -873,6 +874,27 @@ class AIDialogueService:
                 self.api_key = settings.GROQ_API_KEY or ""
             except Exception:
                 pass
+        if not self.api_key:
+            # Check local .env files
+            from pathlib import Path
+            search_paths = [
+                Path(".env"),
+                Path("services/api/.env"),
+                Path(__file__).resolve().parents[2] / ".env",
+                Path(__file__).resolve().parents[3] / ".env"
+            ]
+            for p in search_paths:
+                if p.is_file():
+                    try:
+                        with open(p, "r", encoding="utf-8") as f:
+                            for line in f:
+                                if line.strip().startswith("GROQ_API_KEY="):
+                                    self.api_key = line.strip().split("=", 1)[1].strip().strip('"').strip("'")
+                                    break
+                    except Exception:
+                        pass
+                if self.api_key:
+                    break
         self.fallback_engine = DialogueEngine()
 
     async def generate_next_question(
@@ -910,6 +932,7 @@ class AIDialogueService:
                     conversation_history, language
                 )
                 result["progress_pct"] = progress
+                print(f"[AIDialogueService] Generated dynamic question via Groq ({PRIMARY_MODEL}): {result['question']['text'][:60]}...")
                 return result
             except Exception as e:
                 print(f"[AIDialogueService] Groq call error: {e}. Using ClinicalResponseBasedEngine.")
@@ -941,7 +964,7 @@ class AIDialogueService:
                 {"role": "user", "content": user_prompt}
             ],
             "response_format": {"type": "json_object"},
-            "max_tokens": 700,
+            "max_tokens": 1800,
             "temperature": 0.2,
             "top_p": 0.9
         }
@@ -950,14 +973,18 @@ class AIDialogueService:
             "Content-Type": "application/json"
         }
 
-        async with httpx.AsyncClient(timeout=15.0) as client:
+        async with httpx.AsyncClient(timeout=25.0) as client:
             resp = await client.post(GROQ_API_URL, headers=headers, json=payload)
-            if resp.status_code == 429:
+            if resp.status_code in [400, 404, 429]:
+                # Retry with fallback model
                 payload["model"] = FALLBACK_MODEL
                 resp = await client.post(GROQ_API_URL, headers=headers, json=payload)
             if resp.status_code != 200:
                 raise RuntimeError(f"Groq HTTP {resp.status_code}: {resp.text[:200]}")
-            raw = resp.json()["choices"][0]["message"]["content"]
+            raw = resp.json()["choices"][0]["message"]["content"].strip()
+            if raw.startswith("```"):
+                raw = re.sub(r"^```(?:json)?\s*", "", raw)
+                raw = re.sub(r"\s*```$", "", raw)
             parsed = json.loads(raw)
             return self._format_parsed(parsed, stage, language)
 
@@ -968,13 +995,28 @@ class AIDialogueService:
         chief_complaint: str,
         language: str
     ) -> str:
-        return f"""You are an expert AI clinical intake assistant for MediKiosk.
+        return f"""You are an expert AI clinical intake assistant for MediKiosk hospital kiosks.
 Generate exactly ONE intake question for Stage {stage['stage_num']}/7 ({stage['badge_en']} - {stage['badge_hi']}).
+Objective: {stage['objective']}
 Patient: {patient_info.get('gender', 'FEMALE')}, {patient_info.get('age', 50)}yo.
 Chief Complaint: "{chief_complaint}".
-IMPORTANT: Build directly upon the patient's prior answers. Do not repeat what is already known.
-Respond in valid JSON only with keys:
-stage_num, badge_hi, badge_en, clinical_reasoning, question_hi, question_en, audio_prompt_hi, audio_prompt_en, input_type, options (array of value, label_hi, label_en)."""
+
+CRITICAL CLINICAL RULES:
+1. STRICT SYMPTOM RELEVANCE: The question and options MUST be 100% focused on the patient's reported chief complaint and anatomical location. For example, if chief complaint is eye pain / vision, EVERY question must strictly explore eye anatomy, visual symptoms, redness, discharge, photophobia, eye injury, etc. NEVER ask about chest, abdomen, or unrelated organs unless explicitly mentioned by patient.
+2. ACKNOWLEDGE & ADAPT: Do not repeat what has already been answered. Build directly upon prior answers.
+3. LANGUAGE: Formulate natural, respectful, clear phrasing in both Hindi (Devanagari script) and English.
+4. OPTIONS: Provide 3 to 4 distinct, mutually exclusive and realistic options relevant to the symptom. Each option must have 'value' (SCREAMING_SNAKE_CASE), 'label_hi' (Hindi), and 'label_en' (English).
+5. FORMAT: Return valid JSON ONLY with these keys:
+- stage_num (integer)
+- badge_hi (string)
+- badge_en (string)
+- clinical_reasoning (short rationale string)
+- question_hi (string in Hindi)
+- question_en (string in English)
+- audio_prompt_hi (short string in Hindi for text-to-speech)
+- audio_prompt_en (short string in English for text-to-speech)
+- input_type ("SINGLE_CHOICE" or "MULTI_CHOICE")
+- options (list of objects with "value", "label_hi", "label_en")"""
 
     def _build_user_prompt(
         self,
@@ -982,11 +1024,19 @@ stage_num, badge_hi, badge_en, clinical_reasoning, question_hi, question_en, aud
         history: List[Dict[str, Any]],
         chief_complaint: str
     ) -> str:
-        lines = "\n".join(
-            f"  Q: {item.get('question_text', '?')} -> A: {item.get('answer_text', '?')}"
+        if not history:
+            return f"""Patient's Chief Complaint: "{chief_complaint}"
+Generate Stage {stage['stage_num']} question strictly focusing on this symptom."""
+
+        history_formatted = "\n".join(
+            f"  Q: {item.get('question_text', '?')} -> Patient Answer: {item.get('answer_text', '?')}"
             for item in history
         )
-        return f"Chief Complaint: '{chief_complaint}'\nPrior Answers:\n{lines}\nGenerate Stage {stage['stage_num']} question."
+        return f"""Patient's Chief Complaint: "{chief_complaint}"
+Previous Answers:
+{history_formatted}
+
+Generate Stage {stage['stage_num']} question tailored specifically to these answers. Do not ask about unrelated body systems."""
 
     def _format_parsed(self, parsed: Dict[str, Any], stage: Dict[str, Any], language: str) -> Dict[str, Any]:
         localized_text = (
