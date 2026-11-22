@@ -99,24 +99,158 @@ _STAGE_BY_NUM = {s["stage_num"]: s for s in CLINICAL_STAGES}
 
 # ── Clinical Knowledge Domains & Response Analyzers ──────────────────────────
 DOMAIN_CONFIGS = {
+    "URINARY_KIDNEY": {
+        "high_keywords": [
+            "urine", "urination", "पेशाब", "मूत्र", "kidney", "गुर्दा", "dysuria", "burning urine",
+            "पेशाब में जलन", "blood in urine", "पेशाब में खून", "frequent urination", "बार-बार पेशाब",
+            "bladder", "यूरिन"
+        ],
+        "med_keywords": ["groin", "flank", "pelvic", "जलन", "burning", "drip", "बून्द", "बूंद", "पेड़ू"],
+        "label_hi": "पेशाब, गुर्दा व मूत्र संबंधी",
+        "label_en": "Urinary & Renal Tract",
+        "symptom_hi": "पेशाब की समस्या",
+        "symptom_en": "urinary symptoms",
+        "stage_3_prompt_hi": "पेशाब से जुड़ी किस प्रकार की परेशानी हो रही है? (सभी उपयुक्त विकल्प चुनें)",
+        "stage_3_prompt_en": "What specific urinary symptoms are you experiencing? (Select all that apply)",
+        "locations": [
+            {"val": "BURNING_MICTURITION", "hi": "पेशाब करते समय तेज जलन या चुभन (Burning)", "en": "Sharp burning sensation during urination"},
+            {"val": "FREQUENCY_URGENCY", "hi": "बार-बार पेशाब की इच्छा या रोक न पाना (Urgency)", "en": "Frequent urination or sudden strong urgency"},
+            {"val": "LOWER_ABDO_FLANK", "hi": "पेड़ू (निचले पेट) या कमर के एक तरफ दर्द", "en": "Lower pelvic or one-sided flank/kidney pain"},
+            {"val": "WEAK_STREAM_DIFFICULTY", "hi": "पेशाब की धार कमजोर होना या रुक-रुक कर आना", "en": "Weak stream or difficulty passing urine"}
+        ],
+        "red_flags": [
+            {"val": "BLOOD_IN_URINE", "hi": "पेशाब में लाल रंग या खून के थक्के आना (Hematuria)", "en": "Visible blood or dark clots in urine"},
+            {"val": "HIGH_FEVER_CHILLS", "hi": "तेज कंपकंपी के साथ बुखार व कमर दर्द (गुर्दा संक्रमण संकेत)", "en": "High fever with chills and back pain (Pyelonephritis risk)"},
+            {"val": "COMPLETE_RETENTION", "hi": "पेशाब का बिल्कुल रुक जाना या बूंद-बूंद टपकना", "en": "Inability to pass urine / complete retention"},
+            {"val": "NONE", "hi": "इनमें से कोई नहीं", "en": "None of these"}
+        ],
+        "past_history": [
+            {"val": "KIDNEY_STONES", "hi": "गुर्दे की पथरी (Kidney Stone) का इतिहास", "en": "Prior history of kidney stones"},
+            {"val": "RECURRENT_UTI", "hi": "बार-बार पेशाब का संक्रमण (Recurrent UTI)", "en": "Recurrent urinary tract infections"},
+            {"val": "PROSTATE_PROBLEM", "hi": "प्रोस्टेट ग्रंथि की समस्या (पुरुषों में)", "en": "Prostate enlargement / BPH"},
+            {"val": "DIABETES", "hi": "मधुमेह (डायबिटीज / शुगर)", "en": "Diabetes Mellitus"},
+            {"val": "NONE", "hi": "कोई पुरानी बीमारी नहीं", "en": "No known chronic conditions"}
+        ]
+    },
+    "EYE_VISION": {
+        "high_keywords": [
+            "eye", "eyes", "आंख", "आँख", "आंखें", "आँखें", "vision", "रोशनी", "दृष्टि", "cornea",
+            "conjunctivitis", "cataract", "मोतियाबिंद", "redness in eye", "eye pain", "आंख में दर्द"
+        ],
+        "med_keywords": ["blink", "tear", "पानी", "धुंधला", "blur", "watery", "itching in eye", "चुभन"],
+        "label_hi": "आंख व दृष्टि संबंधी लक्षण",
+        "label_en": "Ophthalmology & Vision",
+        "symptom_hi": "आंख की समस्या",
+        "symptom_en": "eye condition",
+        "stage_3_prompt_hi": "आंख में किस प्रकार की परेशानी महसूस हो रही है? (सभी उपयुक्त विकल्प चुनें)",
+        "stage_3_prompt_en": "What symptoms are affecting your eyes? (Select all that apply)",
+        "locations": [
+            {"val": "REDNESS_DISCHARGE", "hi": "आंख का अत्यधिक लाल होना और कीचड़/पानी आना", "en": "Eye redness with watering or sticky discharge"},
+            {"val": "PAIN_GRITTY", "hi": "आंख में कंकड़ जैसी चुभन या गहरा दर्द", "en": "Foreign body sensation or gritty sharp pain"},
+            {"val": "BLURRED_VISION", "hi": "देखने में धुंधलापन या कम दिखाई देना", "en": "Blurred vision or reduced visual acuity"},
+            {"val": "LIGHT_SENSITIVITY", "hi": "तेज रोशनी में आंखें न खुलना व चुभन (Photophobia)", "en": "Extreme sensitivity to light (Photophobia)"}
+        ],
+        "red_flags": [
+            {"val": "SUDDEN_VISION_LOSS", "hi": "अचानक नजर बहुत कम या बिल्कुल बंद होना", "en": "Sudden painless or painful loss of vision"},
+            {"val": "CHEMICAL_TRAUMA", "hi": "आंख में कोई केमिकल, चूना या सीधी चोट लगना", "en": "Chemical burn or direct blunt trauma to eye"},
+            {"val": "SEVERE_HEADACHE_HALOS", "hi": "रोशनी के चारों तरफ रंगीन छल्ले व तेज सिरदर्द (Glaucoma)", "en": "Colored halos around lights with severe headache"},
+            {"val": "NONE", "hi": "इनमें से कोई नहीं", "en": "None of these"}
+        ],
+        "past_history": [
+            {"val": "SPECTACLES_REFRACTION", "hi": "नजर का चश्मा या लेंस (Refractive error)", "en": "Wear prescription glasses / contacts"},
+            {"val": "CATARACT_GLAUCOMA", "hi": "मोतियाबिंद या काला मोतिया का इतिहास", "en": "Cataract or Glaucoma history"},
+            {"val": "DIABETES_RETINA", "hi": "मधुमेह (डायबिटीज - रेटिना का जोखिम)", "en": "Diabetes Mellitus"},
+            {"val": "ALLERGIC_CONJUNCTIVITIS", "hi": "आंखों की पुरानी एलर्जी", "en": "Chronic eye allergy"},
+            {"val": "NONE", "hi": "कोई पुरानी बीमारी नहीं", "en": "No known chronic conditions"}
+        ]
+    },
+    "FEVER_INFECTION": {
+        "high_keywords": [
+            "fever", "बुखार", "ताप", "तापमान", "temperature", "chills", "कंपकंपी", "ठण्ड", "ठंड",
+            "shivering", "dengue", "malaria", "typhoid", "वायरल", "viral"
+        ],
+        "med_keywords": ["sweat", "पसीना", "body ache", "बदन दर्द", "कमजोरी", "fatigue", "थकान"],
+        "label_hi": "बुखार, कंपकंपी व संक्रमण",
+        "label_en": "Fever & Systemic Infection",
+        "symptom_hi": "बुखार व संक्रमण",
+        "symptom_en": "fever and infection",
+        "stage_3_prompt_hi": "बुखार के साथ क्या-क्या लक्षण महसूस हो रहे हैं? (सभी उपयुक्त विकल्प चुनें)",
+        "stage_3_prompt_en": "What symptoms accompany your fever? (Select all that apply)",
+        "locations": [
+            {"val": "HIGH_FEVER_CONTINUOUS", "hi": "लगातार बना रहने वाला तेज बुखार", "en": "Continuous high-grade fever"},
+            {"val": "INTERMITTENT_SHIVERING", "hi": "कंपकंपी व ठंड लगकर बुखार चढ़ना-उतरना", "en": "Fever spikes with violent chills and shivering"},
+            {"val": "BODYACHE_FATIGUE", "hi": "तेज बदन दर्द, सिरदर्द व भारी कमजोरी", "en": "Severe generalized body ache, headache & fatigue"},
+            {"val": "NIGHT_SWEATS", "hi": "रात में अत्यधिक पसीना छूटना", "en": "Profuse night sweats and exhaustion"}
+        ],
+        "red_flags": [
+            {"val": "ALTERED_CONSCIOUSNESS", "hi": "अत्यधिक सुस्ती, उलझन, बड़बड़ाना या बेहोशी", "en": "Confusion, delirium, lethargy or fainting"},
+            {"val": "FEVER_STIFF_NECK", "hi": "गर्दन में अत्यधिक जकड़न व रोशनी से चुभन (मेनिन्जाइटिस संकेत)", "en": "Stiff neck and inability to bend head forward"},
+            {"val": "FEVER_PETECHIAE", "hi": "शरीर पर लाल-बैंगनी दाने या मसूड़ों/नाक से ब्लीडिंग (डेंगू संकेत)", "en": "Skin petechiae/bleeding spots or gum bleeding"},
+            {"val": "PERSISTENT_ABOVE_103", "hi": "१०३°F से अधिक अनियंत्रित तेज बुखार जो दवा से न उतरे", "en": "Uncontrolled fever above 103°F refractory to medication"},
+            {"val": "NONE", "hi": "इनमें से कोई नहीं", "en": "None of these"}
+        ],
+        "past_history": [
+            {"val": "CHRONIC_INFECTION", "hi": "बार-बार बुखार या टीबी (TB) का पुराना इतिहास", "en": "Recurrent infections or past Tuberculosis"},
+            {"val": "DIABETES_IMMUNITY", "hi": "मधुमेह (कमजोर रोग प्रतिरोधक क्षमता)", "en": "Diabetes (compromised immunity)"},
+            {"val": "RECENT_TRAVEL", "hi": "हाल ही में किसी मलेरिया/डेंगू प्रभावित क्षेत्र की यात्रा", "en": "Recent travel to endemic region"},
+            {"val": "NONE", "hi": "कोई पुरानी बीमारी नहीं", "en": "No known chronic conditions"}
+        ]
+    },
+    "ENT_EAR_THROAT": {
+        "high_keywords": [
+            "ear", "कान", "कानदर्द", "कान बहना", "ear discharge", "hearing", "सुनाई", "earache",
+            "throat", "गला", "गले", "tonsil", "टॉन्सिल", "sinus", "साइनस", "nose", "नाक", "छींक", "sneeze"
+        ],
+        "med_keywords": ["swallow", "निगलने", "tinnitus", "सीटी", "hoarseness", "भारी आवाज", "खराश"],
+        "label_hi": "कान, नाक व गला (ENT)",
+        "label_en": "Ear, Nose & Throat (ENT)",
+        "symptom_hi": "कान, नाक या गले की समस्या",
+        "symptom_en": "ear, nose or throat condition",
+        "stage_3_prompt_hi": "कान, नाक या गले में क्या परेशानी हो रही है? (सभी उपयुक्त विकल्प चुनें)",
+        "stage_3_prompt_en": "What ear, nose, or throat symptoms do you have? (Select all that apply)",
+        "locations": [
+            {"val": "EAR_PAIN_DISCHARGE", "hi": "कान में तेज टीस या मवाद/पानी का रिसाव", "en": "Ear pain, throbbing or fluid/pus discharge"},
+            {"val": "SORE_THROAT_SWALLOW", "hi": "गले में तेज खराश, लाली व थूक निगलने में दर्द", "en": "Severe sore throat with painful swallowing"},
+            {"val": "NOSE_BLOCK_COLD", "hi": "नाक बंद, लगातार छींकें या जुकाम", "en": "Nasal blockage, constant sneezing or runny nose"},
+            {"val": "HEARING_TINNITUS", "hi": "कम सुनाई देना या कान में सीटी जैसी आवाज", "en": "Decreased hearing or persistent ringing (Tinnitus)"}
+        ],
+        "red_flags": [
+            {"val": "STRIDOR_AIRWAY", "hi": "सांस लेने में सीटी की आवाज या दम घुटना (श्वसन नली रुकावट)", "en": "Stridor / respiratory distress / choking sensation"},
+            {"val": "EAR_SPREAD_MASTOID", "hi": "कान के पीछे सूजन, लाली व छूने पर असहनीय दर्द (Mastoiditis)", "en": "Swelling & severe tenderness behind ear"},
+            {"val": "UNABLE_SWALLOW_SALIVA", "hi": "लार भी निगलने में पूरी तरह असमर्थ होना", "en": "Inability to swallow saliva or fluids"},
+            {"val": "NONE", "hi": "इनमें से कोई नहीं", "en": "None of these"}
+        ],
+        "past_history": [
+            {"val": "CHRONIC_SINUS_ALLERGY", "hi": "पुराना साइनस या मौसमी एलर्जी", "en": "Chronic sinusitis or seasonal allergy"},
+            {"val": "EAR_DRUM_PERFORATION", "hi": "कान के पर्दे में छेद या पुराना कान बहना", "en": "Perforated ear drum / chronic otitis"},
+            {"val": "TONSIL_RECURRENT", "hi": "बार-बार टॉन्सिल पकने की समस्या", "en": "Recurrent tonsillitis"},
+            {"val": "NONE", "hi": "कोई पुरानी बीमारी नहीं", "en": "No known chronic conditions"}
+        ]
+    },
     "HEAD_NEURO": {
-        "keywords": ["head", "सिर", "सिरदर्द", "migraine", "माइग्रेन", "चक्कर", "बेहोशी", "dizziness", "vertigo", "temple", "कनपटी", "माथा"],
+        "high_keywords": [
+            "head", "सिर", "सिरदर्द", "migraine", "माइग्रेन", "चक्कर", "बेहोशी", "dizziness",
+            "vertigo", "seizure", "दौरा", "numbness", "सुन्न", "paralysis", "लकवा"
+        ],
+        "med_keywords": ["temple", "कनपटी", "माथा", "forehead", "lightheaded", "भारीपन"],
         "label_hi": "सिर दर्द व न्यूरोलॉजिकल लक्षण",
         "label_en": "Headache & Neurological symptoms",
         "symptom_hi": "सिर दर्द",
         "symptom_en": "headache",
+        "stage_3_prompt_hi": "सिर दर्द या न्यूरोलॉजिकल लक्षण किस प्रकार के हैं? (सभी उपयुक्त विकल्प चुनें)",
+        "stage_3_prompt_en": "Where is the headache and what sensations are associated? (Select all that apply)",
         "locations": [
-            {"val": "TEMPLE_ONE_SIDE", "hi": "सिर के एक तरफ या कनपटी में (कपकपी/धड़कन जैसा)", "en": "One side / temple (throbbing)"},
+            {"val": "TEMPLE_ONE_SIDE", "hi": "सिर के एक तरफ या कनपटी में (धड़कन/टीस जैसा)", "en": "One side / temple (throbbing/pulsating)"},
             {"val": "FOREHEAD_BEHIND_EYES", "hi": "माथे और आंखों के ठीक पीछे गहरा भारीपन", "en": "Forehead and deep behind the eyes"},
-            {"val": "BACK_OF_HEAD_NECK", "hi": "सिर के पिछले हिस्से से गर्दन तक खिंचाव", "en": "Back of head radiating down to neck"},
+            {"val": "BACK_OF_HEAD_NECK", "hi": "सिर के पिछले हिस्से से गर्दन तक खिंचाव व तनाव", "en": "Back of head radiating down to neck"},
             {"val": "WHOLE_HEAD_BAND", "hi": "पूरे सिर में पट्टी बंधने जैसा भारी दबाव", "en": "Band-like tightness around whole head"}
         ],
         "red_flags": [
-            {"val": "NAUSEA_VOMITING", "hi": "जी मिचलाना या बार-बार उल्टी होना", "en": "Nausea or vomiting"},
-            {"val": "VISUAL_DISTURBANCE", "hi": "आँखों के आगे धुंधलापन या रोशनी से चुभन", "en": "Blurred vision or light sensitivity"},
-            {"val": "WEAKNESS_NUMBNESS", "hi": "चेहरे, हाथ या पैर में कमजोरी/सुन्नपन", "en": "Facial, arm or leg weakness/numbness"},
             {"val": "WORST_SUDDEN_HEADACHE", "hi": "अचानक बिजली जैसा सबसे तेज दर्द (Thunderclap)", "en": "Worst sudden headache of life (Thunderclap)"},
-            {"val": "NONE", "hi": "इनमें से कोई नहीं (सामान्य दर्द)", "en": "None of these"}
+            {"val": "FOCAL_NEURO_DEFICIT", "hi": "चेहरे का टेढ़ापन, हाथ-पैर में कमजोरी या बोली लड़खड़ाना (स्ट्रोक संकेत)", "en": "Facial droop, arm weakness or slurred speech"},
+            {"val": "NAUSEA_VOMITING", "hi": "सिरदर्द के साथ तेज उल्टी या रोशनी से चुभन", "en": "Projectile vomiting or severe photophobia"},
+            {"val": "LOSS_OF_CONSCIOUSNESS", "hi": "बेहोशी, दौरा या गंभीर उलझन", "en": "Loss of consciousness, seizures or confusion"},
+            {"val": "NONE", "hi": "इनमें से कोई नहीं", "en": "None of these"}
         ],
         "past_history": [
             {"val": "MIGRAINE", "hi": "माइग्रेन / बार-बार आधा सीसी का दर्द", "en": "Migraine / Chronic headache"},
@@ -127,22 +261,28 @@ DOMAIN_CONFIGS = {
         ]
     },
     "CHEST_CARDIO": {
-        "keywords": ["chest", "सीने", "छाती", "heart", "दिल", "धड़कन", "घबराहट", "भारीपन", "angina", "left arm", "left shoulder", "बांह"],
+        "high_keywords": [
+            "chest", "सीने", "छाती", "heart", "दिल", "angina", "धड़कन", "घबराहट",
+            "palpitations", "heart attack", "दिल का दौरा"
+        ],
+        "med_keywords": ["pressure", "भारीपन", "squeezing", "left arm", "left shoulder", "बाएं हाथ", "जबड़ा", "jaw"],
         "label_hi": "सीने में दर्द व हृदय लक्षण",
         "label_en": "Chest Discomfort & Cardiovascular",
-        "symptom_hi": "सीने में दर्द",
+        "symptom_hi": "सीने में दर्द व भारीपन",
         "symptom_en": "chest discomfort",
+        "stage_3_prompt_hi": "सीने में दर्द या भारीपन का अहसास किस प्रकार का है? (सभी उपयुक्त विकल्प चुनें)",
+        "stage_3_prompt_en": "Where is the chest discomfort and what does it feel like? (Select all that apply)",
         "locations": [
-            {"val": "CENTER_PRESSURE", "hi": "सीने के ठीक बीच में भारी दबाव व जकड़न", "en": "Heavy squeezing pressure in center of chest"},
+            {"val": "CENTER_PRESSURE", "hi": "सीने के ठीक बीच में भारी दबाव व जकड़न (कसाव)", "en": "Heavy squeezing pressure in center of chest"},
             {"val": "LEFT_ARM_JAW", "hi": "बाईं तरफ जो बाएं हाथ, कंधे या जबड़े में फैलता है", "en": "Left chest radiating to left arm, shoulder or jaw"},
             {"val": "SHARP_BREATHING", "hi": "गहरी सांस लेने या खांसने पर सुई जैसी चुभन", "en": "Sharp stabbing pain when taking deep breaths"},
-            {"val": "UPPER_BURNING", "hi": "पेट के ऊपरी हिस्से में तेज जलन व खट्टी डकार", "en": "Upper abdominal burning / acid fullness"}
+            {"val": "PALPITATION_FLUTTER", "hi": "दिल की असामान्य तेज धड़कन या घबराहट", "en": "Pounding palpitations or fluttering sensation"}
         ],
         "red_flags": [
-            {"val": "BREATHLESSNESS", "hi": "सांस फूलना या सांस लेने में भारी तकलीफ", "en": "Shortness of breath / gasping"},
-            {"val": "COLD_SWEAT", "hi": "ठंडा पसीना छूटना व बेचैनी", "en": "Profuse cold sweating & clamminess"},
+            {"val": "BREATHLESSNESS_REST", "hi": "बैठे-बैठे भी सांस फूलना या सांस लेने में भारी तकलीफ", "en": "Severe shortness of breath at rest / gasping"},
+            {"val": "COLD_SWEAT", "hi": "ठंडा पसीना छूटना व तेज घबराहट", "en": "Profuse cold sweating & clamminess"},
             {"val": "DIZZINESS_SYNCOPE", "hi": "अचानक चक्कर आना या बेहोशी जैसा लगना", "en": "Dizziness, lightheadedness or fainting"},
-            {"val": "PALPITATIONS", "hi": "दिल की धड़कन बहुत तेज या अनियंत्रित होना", "en": "Rapid irregular heart palpitations"},
+            {"val": "UNRELENTING_PRESSURE", "hi": "लगातार बना हुआ असहनीय दबाव जो आराम से भी न घटे", "en": "Severe crushing pressure >15 mins at rest"},
             {"val": "NONE", "hi": "इनमें से कोई नहीं", "en": "None of these"}
         ],
         "past_history": [
@@ -153,43 +293,56 @@ DOMAIN_CONFIGS = {
             {"val": "NONE", "hi": "कोई पुरानी बीमारी नहीं", "en": "No known chronic conditions"}
         ]
     },
-    "RESPIRATORY_FEVER": {
-        "keywords": ["cough", "खांसी", "कफ", "phlegm", "sputum", "fever", "बुखार", "chills", "ठंड", "breath", "सांस", "जुकाम", "cold", "throat", "गले", "छींक"],
-        "label_hi": "श्वसन, खांसी व बुखार",
-        "label_en": "Respiratory, Cough & Fever",
-        "symptom_hi": "खांसी व बुखार",
-        "symptom_en": "cough and fever",
+    "RESPIRATORY": {
+        "high_keywords": [
+            "cough", "खांसी", "कफ", "phlegm", "sputum", "बलगम", "asthma", "दमा",
+            "breathing difficulty", "सांस फूलना", "wheezing", "सीटी", "shortness of breath", "सांस"
+        ],
+        "med_keywords": ["gasp", "दम", "bronchitis", "chest congestion", "जकड़न"],
+        "label_hi": "श्वसन, फेफड़े व खांसी",
+        "label_en": "Respiratory & Pulmonary",
+        "symptom_hi": "खांसी व सांस की समस्या",
+        "symptom_en": "respiratory symptoms and cough",
+        "stage_3_prompt_hi": "सांस या खांसी से जुड़ी क्या तकलीफ महसूस हो रही है? (सभी उपयुक्त विकल्प चुनें)",
+        "stage_3_prompt_en": "What respiratory or breathing symptoms are you experiencing? (Select all that apply)",
         "locations": [
-            {"val": "DRY_COUGH", "hi": "लगातार सूखी खांसी बिना कफ के", "en": "Persistent dry hacking cough"},
+            {"val": "DRY_COUGH", "hi": "लगातार सूखी खांसी बिना बलगम के", "en": "Persistent dry hacking cough"},
             {"val": "YELLOW_GREEN_SPUTUM", "hi": "पीला या हरा गाढ़ा बलगम आना", "en": "Thick yellow or green sputum"},
-            {"val": "SORE_THROAT", "hi": "गले में खराश, दर्द व निगलने में तकलीफ", "en": "Severe sore throat & painful swallowing"},
-            {"val": "WHEEZING_CHEST", "hi": "सांस लेते समय सीने में सीटी या घरघराहट", "en": "Chest tightness with wheezing whistling sound"}
+            {"val": "EXERTIONAL_DYSPNEA", "hi": "थोड़ा चलने या सीढ़ियां चढ़ने पर सांस फूलना", "en": "Breathlessness upon mild exertion or walking"},
+            {"val": "WHEEZING_CHEST", "hi": "सांस लेते समय सीने में सीटी या घरघराहट", "en": "Chest tightness with audible wheezing"}
         ],
         "red_flags": [
-            {"val": "SEVERE_DYSPNEA", "hi": "बैठे-बैठे भी सांस फूलना या बात न कर पाना", "en": "Gasping for breath / unable to speak"},
+            {"val": "SEVERE_DYSPNEA", "hi": "बैठे-बैठे भी सांस फूलना या बात न कर पाना", "en": "Gasping for breath / unable to speak full sentences"},
             {"val": "BLOOD_IN_SPUTUM", "hi": "खांसी में खून के छींटे (Hemoptysis)", "en": "Blood in cough / sputum"},
-            {"val": "HIGH_RIGORS", "hi": "तेज कंपकंपी के साथ १०३°F से अधिक बुखार", "en": "High fever >103°F with violent shivering"},
-            {"val": "BLUE_LIPS", "hi": "नाखून या होंठ नीले पड़ना (Cyanosis)", "en": "Bluish tinge on lips or fingernails"},
+            {"val": "BLUE_LIPS", "hi": "नाखून या होंठ नीले पड़ना (Cyanosis - ऑक्सीजन की कमी)", "en": "Bluish tinge on lips or fingernails (Cyanosis)"},
+            {"val": "STRUGGLING_TO_BREATHE", "hi": "सांस लेने में छाती का बुरी तरह खिंचना", "en": "Accessory muscle use / severe respiratory distress"},
             {"val": "NONE", "hi": "इनमें से कोई नहीं", "en": "None of these"}
         ],
         "past_history": [
-            {"val": "ASTHMA", "hi": "दमा / अस्थमा (Asthma)", "en": "Asthma / Inhaler user"},
+            {"val": "ASTHMA", "hi": "दमा / अस्थमा (Asthma) या इनहेलर का उपयोग", "en": "Asthma / Inhaler user"},
             {"val": "COPD_SMOKING", "hi": "पुरानी ब्रोंकाइटिस / बीड़ी-सिगरेट का सेवन", "en": "COPD / Chronic bronchitis"},
-            {"val": "ALLERGIES", "hi": "धूल-धुएं या मौसम से एलर्जी", "en": "Dust, smoke or seasonal allergy"},
+            {"val": "ALLERGIES", "hi": "धूल-धुएं या मौसम से सांस की एलर्जी", "en": "Dust, smoke or seasonal allergy"},
             {"val": "TB", "hi": "टीबी (Tuberculosis) का इतिहास", "en": "Prior Tuberculosis"},
             {"val": "NONE", "hi": "कोई पुरानी बीमारी नहीं", "en": "No known chronic conditions"}
         ]
     },
     "GASTROINTESTINAL": {
-        "keywords": ["stomach", "पेट", "abdomen", "उल्टी", "vomit", "जी मिचलाना", "nausea", "दस्त", "loose motion", "diarrhea", "acidity", "जलन", "gas", "गैस", "कब्ज", "constipation", "खट्टी डकार", "भूख"],
+        "high_keywords": [
+            "stomach", "पेट", "abdomen", "पेटदर्द", "उल्टी", "vomit", "जी मिचलाना", "nausea",
+            "दस्त", "loose motion", "diarrhea", "acidity", "एसिडिटी", "gas", "गैस", "कब्ज",
+            "constipation", "heartburn", "digestion", "पाचन"
+        ],
+        "med_keywords": ["cramps", "मरोड़", "bloating", "खट्टी डकार", "भूख", "appetite"],
         "label_hi": "पेट, पाचन व गैस्ट्रोइंटेस्टाइनल",
         "label_en": "Gastrointestinal & Abdominal",
-        "symptom_hi": "पेट की समस्या",
+        "symptom_hi": "पेट दर्द व पाचन समस्या",
         "symptom_en": "abdominal discomfort",
+        "stage_3_prompt_hi": "पेट या पाचन से जुड़ी क्या परेशानी हो रही है? (सभी उपयुक्त विकल्प चुनें)",
+        "stage_3_prompt_en": "What digestive or abdominal symptoms do you have? (Select all that apply)",
         "locations": [
-            {"val": "UPPER_EPIGASTRIC", "hi": "पेट के ऊपरी हिस्से में तेज जलन व भारीपन", "en": "Upper central burning / acid fullness"},
-            {"val": "PERI_UMBILICAL", "hi": "नाभि के आसपास मरोड़ व तेज ऐंठन", "en": "Twisting cramps around navel"},
-            {"val": "RIGHT_LOWER", "hi": "पेट के निचले दाहिने हिस्से में चुभने वाला दर्द", "en": "Right lower abdominal localized pain"},
+            {"val": "UPPER_EPIGASTRIC", "hi": "पेट के ऊपरी हिस्से में तेज जलन, खट्टी डकार व भारीपन", "en": "Upper central burning / acid fullness"},
+            {"val": "PERI_UMBILICAL", "hi": "नाभि के आसपास मरोड़ व पतले दस्त", "en": "Twisting cramps around navel with loose stools"},
+            {"val": "RIGHT_LOWER", "hi": "पेट के निचले दाहिने हिस्से में चुभने वाला दर्द (Appendix संकेत)", "en": "Right lower abdominal localized sharp pain"},
             {"val": "GENERAL_BLOATING", "hi": "पूरे पेट में भारी गैस व फूला हुआ अहसास", "en": "Generalized abdominal distension & gas"}
         ],
         "red_flags": [
@@ -208,11 +361,18 @@ DOMAIN_CONFIGS = {
         ]
     },
     "MUSCULOSKELETAL": {
-        "keywords": ["joint", "घुटने", "knee", "back", "कमर", "पीठ", "shoulder", "कंधा", "गर्दन", "neck", "हाथ", "पैर", "दर्द", "pain", "swelling", "सूजन", "अकड़न", "stiffness", "arthritis", "गठिया", "मोच", "sprain", "injury", "चोट", "फिसल", "गिरने"],
+        "high_keywords": [
+            "knee", "घुटने", "घुटनों", "joint", "जोड़", "जोड़ों", "back", "कमर", "कमरदर्द", "पीठ",
+            "shoulder", "कंधा", "ankle", "टखने", "heel", "एड़ी", "spine", "रीढ़", "arthritis",
+            "गठिया", "fracture", "फ्रैक्चर", "sprain", "मोच"
+        ],
+        "med_keywords": ["stiffness", "अकड़न", "muscle", "मांसपेशी", "खिंचाव", "सूजन", "swelling", "हड्डी", "bone"],
         "label_hi": "जोड़, मांसपेशी व हड्डी का दर्द",
         "label_en": "Musculoskeletal & Joint Pain",
         "symptom_hi": "जोड़ों या मांसपेशियों का दर्द",
         "symptom_en": "joint or muscle pain",
+        "stage_3_prompt_hi": "जोड़ों या मांसपेशियों में किस प्रकार का दर्द या परेशानी महसूस हो रही है? (सभी उपयुक्त विकल्प चुनें)",
+        "stage_3_prompt_en": "What kind of musculoskeletal discomfort do you experience? (Select all that apply)",
         "locations": [
             {"val": "WEIGHT_BEARING", "hi": "चलने, झुकने या सीढ़ियाँ चढ़ते समय तेज दर्द", "en": "Pain worsened by walking, bending or stairs"},
             {"val": "VISIBLE_SWELLING", "hi": "जोड़ में स्पष्ट सूजन, गर्माहट या लाली", "en": "Visible swelling, heat, or redness at joint"},
@@ -223,7 +383,7 @@ DOMAIN_CONFIGS = {
             {"val": "CANNOT_BEAR_WEIGHT", "hi": "पैर पर थोड़ा सा भी वजन रखने में पूरी तरह असमर्थ", "en": "Completely unable to bear weight / take steps"},
             {"val": "DEFORMITY_FRACTURE", "hi": "जोड़ या हड्डी का मुड़ना/विकृति (संभावित फ्रैक्चर)", "en": "Visible deformity or bone misalignment"},
             {"val": "NUMBNESS_TINGLING", "hi": "हाथ या पैर में सुन्नपन, करंट जैसा झनझनाहट", "en": "Pins-and-needles or radiating numbness"},
-            {"val": "HOT_RED_JOINT", "hi": "जोड़ अत्यधिक गर्म, लाल व तेज बुखार", "en": "Joint acutely hot & red with fever (Septic arthritis)"},
+            {"val": "HOT_RED_JOINT", "hi": "जोड़ अत्यधिक गर्म, लाल व तेज बुखार (सेप्टिक आर्थराइटिस)", "en": "Joint acutely hot & red with fever (Septic arthritis)"},
             {"val": "NONE", "hi": "इनमें से कोई नहीं", "en": "None of these"}
         ],
         "past_history": [
@@ -235,11 +395,17 @@ DOMAIN_CONFIGS = {
         ]
     },
     "SKIN_DERM": {
-        "keywords": ["skin", "त्वचा", "खुजली", "itching", "rash", "चकत्ते", "दाने", "pimple", "दाद", "fungal", "boil", "फोड़ा", "redness", "लालिमा", "allergy"],
+        "high_keywords": [
+            "skin", "त्वचा", "खुजली", "itching", "rash", "चकत्ते", "दाने", "pimple", "दाद",
+            "fungal", "boil", "फोड़ा", "blister", "फफोले", "eczema", "psoriasis"
+        ],
+        "med_keywords": ["redness", "लालिमा", "allergy", "एलर्जी", "peeling", "पपड़ी"],
         "label_hi": "त्वचा, खुजली व चकत्ते",
         "label_en": "Dermatological & Skin Rash",
         "symptom_hi": "त्वचा की समस्या",
         "symptom_en": "skin condition",
+        "stage_3_prompt_hi": "त्वचा पर किस प्रकार के चकत्ते या लक्षण दिख रहे हैं? (सभी उपयुक्त विकल्प चुनें)",
+        "stage_3_prompt_en": "What skin changes or rash characteristics are present? (Select all that apply)",
         "locations": [
             {"val": "NIGHT_ITCHING", "hi": "रात में बिस्तर पर जाने के बाद अत्यधिक तेज खुजली", "en": "Intense itching, especially worse at night"},
             {"val": "RED_PATCHES", "hi": "उभरे हुए लाल चकत्ते, जिनमें जलन होती है", "en": "Raised erythematous patches with burning sensation"},
@@ -260,11 +426,14 @@ DOMAIN_CONFIGS = {
         ]
     },
     "DENTAL": {
-        "keywords": ["tooth", "दांत", "दाढ़", "मसूड़े", "gum", "cavity", "कीड़ा", "jaw", "जबड़ा"],
+        "high_keywords": ["tooth", "teeth", "दांत", "दाढ़", "मसूड़े", "gum", "cavity", "कीड़ा"],
+        "med_keywords": ["jaw", "जबड़ा", "sensitiv", "झनझनाहट"],
         "label_hi": "दांत व मुख समस्या",
         "label_en": "Dental & Oral symptoms",
-        "symptom_hi": "दांत में दर्द",
+        "symptom_hi": "दांत का दर्द",
         "symptom_en": "toothache",
+        "stage_3_prompt_hi": "दांत या मुंह में किस प्रकार की तकलीफ महसूस हो रही है? (सभी उपयुक्त विकल्प चुनें)",
+        "stage_3_prompt_en": "What symptoms are affecting your teeth or gums? (Select all that apply)",
         "locations": [
             {"val": "HOT_COLD_SENSITIVITY", "hi": "ठंडा या गर्म पानी लगने पर तेज झनझनाहट", "en": "Sharp sensitivity to cold or hot liquids"},
             {"val": "CHEWING_PAIN", "hi": "खाना चबाने या दांत दबाने पर असहनीय दर्द", "en": "Severe shooting pain upon chewing"},
@@ -289,7 +458,7 @@ DOMAIN_CONFIGS = {
 class ClinicalResponseAnalyzer:
     """
     Extracts clinical features from the patient's actual statements
-    to drive deep response-based question generation.
+    to drive deep response-based question generation with 10-domain weighted precision.
     """
 
     @staticmethod
@@ -299,13 +468,16 @@ class ClinicalResponseAnalyzer:
             ans = str(item.get("answer_text", "")).lower()
             corpus += " " + ans
 
-        # 1. Detect Primary Domain
+        # 1. Detect Primary Domain using weighted scoring:
+        # High keywords = 10 points, Medium keywords = 3 points
         matched_domain = "GENERAL"
         best_score = 0
         for dom_key, conf in DOMAIN_CONFIGS.items():
-            score = sum(1 for kw in conf["keywords"] if kw.lower() in corpus)
-            if score > best_score:
-                best_score = score
+            high_score = sum(10 for kw in conf.get("high_keywords", []) if kw.lower() in corpus)
+            med_score = sum(3 for kw in conf.get("med_keywords", []) if kw.lower() in corpus)
+            total = high_score + med_score
+            if total > best_score:
+                best_score = total
                 matched_domain = dom_key
 
         domain_info = DOMAIN_CONFIGS.get(matched_domain)
@@ -332,12 +504,15 @@ class ClinicalResponseAnalyzer:
         loc_patterns = [
             (r"(बाईं|left|left side|बाएं)", "बाईं तरफ (Left side)"),
             (r"(दाईं|right|right side|दाहिने)", "दाईं तरफ (Right side)"),
+            (r"(आंख|eyes|आँख)", "आंख (Eye)"),
+            (r"(कान|ear)", "कान (Ear)"),
             (r"(घुटने|knee|घुटनों)", "घुटने (Knee)"),
             (r"(कमर|back|पीठ|spine)", "कमर/पीठ (Back/Spine)"),
             (r"(कनपटी|temple|माथा|forehead)", "कनपटी/माथा (Temples/Forehead)"),
             (r"(गले|throat)", "गला (Throat)"),
             (r"(पेट|stomach|abdomen)", "पेट (Abdomen)"),
-            (r"(छाती|सीने|chest)", "सीने (Chest)")
+            (r"(छाती|सीने|chest)", "सीने (Chest)"),
+            (r"(पेशाब|urine)", "मूत्र मार्ग (Urinary tract)")
         ]
         for pat, lbl in loc_patterns:
             if re.search(pat, corpus):
@@ -354,34 +529,46 @@ class ClinicalResponseAnalyzer:
         symptom_hi = domain_info["symptom_hi"] if domain_info else "तकलीफ"
         symptom_en = domain_info["symptom_en"] if domain_info else "symptom"
 
-        # Refine symptom name if directly found
-        if "सिर" in corpus or "headache" in corpus:
-            symptom_hi = "सिर दर्द"
-            symptom_en = "headache"
-        elif "सीने" in corpus or "chest" in corpus:
-            symptom_hi = "सीने में दर्द व भारीपन"
-            symptom_en = "chest discomfort"
-        elif "घुटने" in corpus or "knee" in corpus:
-            symptom_hi = "घुटने का दर्द"
-            symptom_en = "knee pain"
-        elif "कमर" in corpus or "back" in corpus:
-            symptom_hi = "कमर दर्द"
-            symptom_en = "back pain"
-        elif "पेट" in corpus or "stomach" in corpus or "उल्टी" in corpus:
-            symptom_hi = "पेट दर्द व पाचन समस्या"
-            symptom_en = "abdominal discomfort"
-        elif "दांत" in corpus or "tooth" in corpus:
-            symptom_hi = "दांत का दर्द"
-            symptom_en = "toothache"
-        elif "खुजली" in corpus or "चकत्ते" in corpus or "rash" in corpus:
-            symptom_hi = "त्वचा के चकत्ते व खुजली"
-            symptom_en = "skin rash and itching"
-        elif "खांसी" in corpus or "cough" in corpus:
-            symptom_hi = "खांसी व कफ"
-            symptom_en = "cough"
-        elif "बुखार" in corpus or "fever" in corpus:
+        # Explicit granular refinements
+        if any(w in corpus for w in ["पेशाब", "urine", "urination"]):
+            symptom_hi = "पेशाब की समस्या"
+            symptom_en = "urinary symptoms"
+        elif any(w in corpus for w in ["आंख", "eyes", "eye"]):
+            symptom_hi = "आंख की समस्या"
+            symptom_en = "eye condition"
+        elif any(w in corpus for w in ["कान", "ear"]):
+            symptom_hi = "कान की समस्या"
+            symptom_en = "ear condition"
+        elif any(w in corpus for w in ["गले", "throat"]):
+            symptom_hi = "गले की समस्या"
+            symptom_en = "throat condition"
+        elif any(w in corpus for w in ["बुखार", "fever"]):
             symptom_hi = "बुखार"
             symptom_en = "fever"
+        elif any(w in corpus for w in ["सिर", "headache", "माइग्रेन"]):
+            symptom_hi = "सिर दर्द"
+            symptom_en = "headache"
+        elif any(w in corpus for w in ["सीने", "chest", "छाती"]):
+            symptom_hi = "सीने में दर्द व भारीपन"
+            symptom_en = "chest discomfort"
+        elif any(w in corpus for w in ["घुटने", "knee"]):
+            symptom_hi = "घुटने का दर्द"
+            symptom_en = "knee pain"
+        elif any(w in corpus for w in ["कमर", "back"]):
+            symptom_hi = "कमर दर्द"
+            symptom_en = "back pain"
+        elif any(w in corpus for w in ["पेट", "stomach", "उल्टी", "दस्त"]):
+            symptom_hi = "पेट दर्द व पाचन समस्या"
+            symptom_en = "abdominal discomfort"
+        elif any(w in corpus for w in ["दांत", "tooth"]):
+            symptom_hi = "दांत का दर्द"
+            symptom_en = "toothache"
+        elif any(w in corpus for w in ["खुजली", "चकत्ते", "rash"]):
+            symptom_hi = "त्वचा के चकत्ते व खुजली"
+            symptom_en = "skin rash and itching"
+        elif any(w in corpus for w in ["खांसी", "cough"]):
+            symptom_hi = "खांसी व कफ"
+            symptom_en = "cough"
 
         last_ans = conversation_history[-1].get("answer_text", "") if conversation_history else chief_complaint
 
@@ -433,8 +620,6 @@ class ClinicalResponseBasedEngine:
         if stage_num == 2:
             input_type = "SINGLE_CHOICE"
             if dur:
-                # Patient already told us the timeline in Chief Complaint!
-                # Acknowledge timeline and ask about Sudden vs Gradual onset and Constancy!
                 q_hi = (
                     f"आपने बताया कि आपको {s_hi} {dur} से है। "
                     f"यह अचानक तेजी से शुरू हुआ था या धीरे-धीरे बढ़ा, और क्या यह लगातार बना रहता है?"
@@ -469,21 +654,15 @@ class ClinicalResponseBasedEngine:
                 clinical_reasoning = f"Clarifying symptom onset duration for {s_en} to establish acute vs subacute/chronic triage status."
 
         # ─────────────────────────────────────────────────────────────────────
-        # STAGE 3: LOCATION & CHARACTER (Response-Based)
+        # STAGE 3: LOCATION & CHARACTER (Domain & Response-Based)
         # ─────────────────────────────────────────────────────────────────────
         elif stage_num == 3:
             input_type = "MULTI_CHOICE"
             if dom_info and dom_info.get("locations"):
-                q_hi = (
-                    f"आपके {s_hi} की सटीक स्थिति कहाँ है और दर्द या परेशानी का अहसास कैसा होता है? "
-                    f"(सभी उपयुक्त विकल्प चुनें)"
-                )
-                q_en = (
-                    f"Where exactly is the {s_en} located and what does the sensation feel like? "
-                    f"(Select all that apply)"
-                )
-                audio_hi = f"दर्द की सही जगह व प्रकार चुनें।"
-                audio_en = "Select location and sensation."
+                q_hi = dom_info.get("stage_3_prompt_hi") or f"आपके {s_hi} की सटीक स्थिति कहाँ है और क्या लक्षण महसूस हो रहे हैं? (सभी उपयुक्त विकल्प चुनें)"
+                q_en = dom_info.get("stage_3_prompt_en") or f"What specific symptoms and sensations are you experiencing regarding your {s_en}? (Select all that apply)"
+                audio_hi = f"लक्षण व स्थिति का चयन करें।"
+                audio_en = "Select symptoms and sensations."
                 options = [
                     {"value": item["val"], "label_hi": item["hi"], "label_en": item["en"]}
                     for item in dom_info["locations"]
@@ -499,10 +678,10 @@ class ClinicalResponseBasedEngine:
                     {"value": "BURNING_THROB", "label_hi": "जलन या धड़कन जैसी टीस", "label_en": "Burning or throbbing sensation"},
                     {"value": "RADIATING", "label_hi": "एक जगह से दूसरी जगह फैलता हुआ दर्द", "label_en": "Pain radiating to adjacent body parts"}
                 ]
-            clinical_reasoning = f"Characterizing anatomical radiation and quality of {s_en} to differentiate visceral vs somatic pathology."
+            clinical_reasoning = f"Characterizing specific presentation and quality of {s_en} to differentiate clinical etiology."
 
         # ─────────────────────────────────────────────────────────────────────
-        # STAGE 4: RED FLAGS & SEVERITY (Response-Based)
+        # STAGE 4: RED FLAGS & SEVERITY (Domain-Specific Safety Check)
         # ─────────────────────────────────────────────────────────────────────
         elif stage_num == 4:
             input_type = "MULTI_CHOICE"
@@ -538,7 +717,7 @@ class ClinicalResponseBasedEngine:
             clinical_reasoning = f"Targeted emergency red-flag screening for {s_en} to trigger immediate clinical triage prioritization if life-threatening signs present."
 
         # ─────────────────────────────────────────────────────────────────────
-        # STAGE 5: PAST MEDICAL HISTORY (Response-Based)
+        # STAGE 5: PAST MEDICAL HISTORY (Domain-Specific Comorbidities)
         # ─────────────────────────────────────────────────────────────────────
         elif stage_num == 5:
             input_type = "MULTI_CHOICE"
@@ -613,6 +792,38 @@ class ClinicalResponseBasedEngine:
                 f"Evaluating functional impairment, sleep disturbance, and dietary impact of {s_en} "
                 f"to gauge clinical severity and patient quality of life."
             )
+
+        # Localized text selection
+        localized_text = q_hi if language == "hi" else q_en
+        audio_prompt = audio_hi if language == "hi" else audio_en
+
+        formatted_options = []
+        for opt in options:
+            label = opt.get("label_hi") if language == "hi" else opt.get("label_en")
+            formatted_options.append({
+                "value": opt.get("value"),
+                "label": label or opt.get("label_en") or opt.get("value")
+            })
+
+        return {
+            "question": {
+                "id": q_id,
+                "stage_num": stage_num,
+                "total_stages": 7,
+                "stage_badge_hi": stage_meta["badge_hi"],
+                "stage_badge_en": stage_meta["badge_en"],
+                "category": stage_meta["category"],
+                "text": q_en,
+                "localized_text": localized_text,
+                "audio_prompt_text": audio_prompt,
+                "input_type": input_type,
+                "required": True,
+                "options": formatted_options,
+                "response_context": f"{s_hi} ({s_en})"
+            },
+            "clinical_reasoning": clinical_reasoning,
+            "is_interview_complete": False
+        }
 
         # Localized text selection
         localized_text = q_hi if language == "hi" else q_en

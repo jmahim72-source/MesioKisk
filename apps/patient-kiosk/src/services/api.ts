@@ -385,30 +385,355 @@ function getClientNextQuestion(answeredIds: string[], chief: string, lang: strin
   if (stageNum > 7) return { question: null, plan: [1, 2, 3, 4, 5, 6, 7] };
 
   const t = (chief || '').toLowerCase();
-  let symptomHi = 'तकलीफ';
-  let symptomEn = 'symptom';
 
-  if (t.includes('सिर') || t.includes('head')) {
-    symptomHi = 'सिर दर्द';
-    symptomEn = 'headache';
-  } else if (t.includes('सीने') || t.includes('छाती') || t.includes('chest') || t.includes('heart')) {
-    symptomHi = 'सीने में दर्द व भारीपन';
-    symptomEn = 'chest discomfort';
-  } else if (t.includes('घुटने') || t.includes('knee') || t.includes('कमर') || t.includes('back') || t.includes('जोड़')) {
-    symptomHi = 'जोड़ों व मांसपेशियों का दर्द';
-    symptomEn = 'joint and muscle pain';
-  } else if (t.includes('पेट') || t.includes('stomach') || t.includes('उल्टी') || t.includes('vomit') || t.includes('दस्त')) {
-    symptomHi = 'पेट दर्द व पाचन समस्या';
-    symptomEn = 'abdominal symptoms';
-  } else if (t.includes('दांत') || t.includes('tooth')) {
-    symptomHi = 'दांत का दर्द';
-    symptomEn = 'toothache';
-  } else if (t.includes('खांसी') || t.includes('cough') || t.includes('बुखार') || t.includes('fever')) {
-    symptomHi = 'खांसी व बुखार';
-    symptomEn = 'respiratory symptoms and fever';
+  // 10-domain weighted classifier for client-side fallback
+  type DomainKey = 'URINARY_KIDNEY' | 'EYE_VISION' | 'FEVER_INFECTION' | 'ENT_EAR_THROAT' | 'CHEST_CARDIO' | 'RESPIRATORY' | 'GASTROINTESTINAL' | 'MUSCULOSKELETAL' | 'HEAD_NEURO' | 'SKIN_DERM' | 'DENTAL' | 'GENERAL';
+
+  interface DomainMeta {
+    symptomHi: string;
+    symptomEn: string;
+    stage3QHi: string;
+    stage3QEn: string;
+    stage3Options: { value: string; hi: string; en: string }[];
+    redFlags: { value: string; hi: string; en: string }[];
+    pastHistory: { value: string; hi: string; en: string }[];
   }
 
-  const hasDuration = t.includes('दिन') || t.includes('day') || t.includes('सुबह') || t.includes('morning') || t.includes('हफ्ते') || t.includes('week');
+  const DOMAINS: Record<DomainKey, DomainMeta> = {
+    URINARY_KIDNEY: {
+      symptomHi: 'पेशाब की समस्या',
+      symptomEn: 'urinary symptoms',
+      stage3QHi: 'पेशाब से जुड़ी किस प्रकार की परेशानी हो रही है? (सभी उपयुक्त विकल्प चुनें)',
+      stage3QEn: 'What specific urinary symptoms are you experiencing? (Select all that apply)',
+      stage3Options: [
+        { value: 'BURNING_MICTURITION', hi: 'पेशाब करते समय तेज जलन या चुभन', en: 'Sharp burning sensation during urination' },
+        { value: 'FREQUENCY_URGENCY', hi: 'बार-बार पेशाब की इच्छा या रोक न पाना', en: 'Frequent urination or sudden strong urgency' },
+        { value: 'LOWER_ABDO_FLANK', hi: 'पेड़ू (निचले पेट) या कमर के एक तरफ दर्द', en: 'Lower pelvic or one-sided flank/kidney pain' },
+        { value: 'WEAK_STREAM_DIFFICULTY', hi: 'पेशाब की धार कमजोर होना या रुक-रुक कर आना', en: 'Weak stream or difficulty passing urine' }
+      ],
+      redFlags: [
+        { value: 'BLOOD_IN_URINE', hi: 'पेशाब में लाल रंग या खून के थक्के आना (Hematuria)', en: 'Visible blood or dark clots in urine' },
+        { value: 'HIGH_FEVER_CHILLS', hi: 'तेज कंपकंपी के साथ बुखार व कमर दर्द', en: 'High fever with chills and back pain' },
+        { value: 'COMPLETE_RETENTION', hi: 'पेशाब का बिल्कुल रुक जाना या बूंद-बूंद टपकना', en: 'Inability to pass urine / complete retention' },
+        { value: 'NONE', hi: 'इनमें से कोई नहीं', en: 'None of these' }
+      ],
+      pastHistory: [
+        { value: 'KIDNEY_STONES', hi: 'गुर्दे की पथरी (Kidney Stone) का इतिहास', en: 'Prior history of kidney stones' },
+        { value: 'RECURRENT_UTI', hi: 'बार-बार पेशाब का संक्रमण (Recurrent UTI)', en: 'Recurrent urinary tract infections' },
+        { value: 'PROSTATE_PROBLEM', hi: 'प्रोस्टेट ग्रंथि की समस्या', en: 'Prostate enlargement / BPH' },
+        { value: 'DIABETES', hi: 'मधुमेह (डायबिटीज / शुगर)', en: 'Diabetes Mellitus' },
+        { value: 'NONE', hi: 'कोई पुरानी बीमारी नहीं', en: 'No known chronic conditions' }
+      ]
+    },
+    EYE_VISION: {
+      symptomHi: 'आंख की समस्या',
+      symptomEn: 'eye condition',
+      stage3QHi: 'आंख में किस प्रकार की परेशानी महसूस हो रही है? (सभी उपयुक्त विकल्प चुनें)',
+      stage3QEn: 'What symptoms are affecting your eyes? (Select all that apply)',
+      stage3Options: [
+        { value: 'REDNESS_DISCHARGE', hi: 'आंख का अत्यधिक लाल होना और कीचड़/पानी आना', en: 'Eye redness with watering or sticky discharge' },
+        { value: 'PAIN_GRITTY', hi: 'आंख में कंकड़ जैसी चुभन या गहरा दर्द', en: 'Foreign body sensation or gritty sharp pain' },
+        { value: 'BLURRED_VISION', hi: 'देखने में धुंधलापन या कम दिखाई देना', en: 'Blurred vision or reduced visual acuity' },
+        { value: 'LIGHT_SENSITIVITY', hi: 'तेज रोशनी में आंखें न खुलना व चुभन (Photophobia)', en: 'Extreme sensitivity to light (Photophobia)' }
+      ],
+      redFlags: [
+        { value: 'SUDDEN_VISION_LOSS', hi: 'अचानक नजर बहुत कम या बिल्कुल बंद होना', en: 'Sudden painless or painful loss of vision' },
+        { value: 'CHEMICAL_TRAUMA', hi: 'आंख में कोई केमिकल, चूना या सीधी चोट लगना', en: 'Chemical burn or direct blunt trauma to eye' },
+        { value: 'SEVERE_HEADACHE_HALOS', hi: 'रोशनी के चारों तरफ रंगीन छल्ले व तेज सिरदर्द', en: 'Colored halos around lights with severe headache' },
+        { value: 'NONE', hi: 'इनमें से कोई नहीं', en: 'None of these' }
+      ],
+      pastHistory: [
+        { value: 'SPECTACLES_REFRACTION', hi: 'नजर का चश्मा या लेंस (Refractive error)', en: 'Wear prescription glasses / contacts' },
+        { value: 'CATARACT_GLAUCOMA', hi: 'मोतियाबिंद या काला मोतिया का इतिहास', en: 'Cataract or Glaucoma history' },
+        { value: 'DIABETES_RETINA', hi: 'मधुमेह (डायबिटीज - रेटिना का जोखिम)', en: 'Diabetes Mellitus' },
+        { value: 'ALLERGIC_CONJUNCTIVITIS', hi: 'आंखों की पुरानी एलर्जी', en: 'Chronic eye allergy' },
+        { value: 'NONE', hi: 'कोई पुरानी बीमारी नहीं', en: 'No known chronic conditions' }
+      ]
+    },
+    FEVER_INFECTION: {
+      symptomHi: 'बुखार व संक्रमण',
+      symptomEn: 'fever and infection',
+      stage3QHi: 'बुखार के साथ क्या-क्या लक्षण महसूस हो रहे हैं? (सभी उपयुक्त विकल्प चुनें)',
+      stage3QEn: 'What symptoms accompany your fever? (Select all that apply)',
+      stage3Options: [
+        { value: 'HIGH_FEVER_CONTINUOUS', hi: 'लगातार बना रहने वाला तेज बुखार', en: 'Continuous high-grade fever' },
+        { value: 'INTERMITTENT_SHIVERING', hi: 'कंपकंपी व ठंड लगकर बुखार चढ़ना-उतरना', en: 'Fever spikes with violent chills and shivering' },
+        { value: 'BODYACHE_FATIGUE', hi: 'तेज बदन दर्द, सिरदर्द व भारी कमजोरी', en: 'Severe generalized body ache, headache & fatigue' },
+        { value: 'NIGHT_SWEATS', hi: 'रात में अत्यधिक पसीना छूटना', en: 'Profuse night sweats and exhaustion' }
+      ],
+      redFlags: [
+        { value: 'ALTERED_CONSCIOUSNESS', hi: 'अत्यधिक सुस्ती, उलझन, बड़बड़ाना या बेहोशी', en: 'Confusion, delirium, lethargy or fainting' },
+        { value: 'FEVER_STIFF_NECK', hi: 'गर्दन में अत्यधिक जकड़न व रोशनी से चुभन', en: 'Stiff neck and inability to bend head forward' },
+        { value: 'FEVER_PETECHIAE', hi: 'शरीर पर लाल-बैंगनी दाने या मसूड़ों से ब्लीडिंग', en: 'Skin petechiae/bleeding spots or gum bleeding' },
+        { value: 'PERSISTENT_ABOVE_103', hi: '१०३°F से अधिक अनियंत्रित तेज बुखार', en: 'Uncontrolled fever above 103°F refractory to medication' },
+        { value: 'NONE', hi: 'इनमें से कोई नहीं', en: 'None of these' }
+      ],
+      pastHistory: [
+        { value: 'CHRONIC_INFECTION', hi: 'बार-बार बुखार या टीबी (TB) का पुराना इतिहास', en: 'Recurrent infections or past Tuberculosis' },
+        { value: 'DIABETES_IMMUNITY', hi: 'मधुमेह (कमजोर रोग प्रतिरोधक क्षमता)', en: 'Diabetes (compromised immunity)' },
+        { value: 'RECENT_TRAVEL', hi: 'हाल ही में किसी मलेरिया/डेंगू प्रभावित क्षेत्र की यात्रा', en: 'Recent travel to endemic region' },
+        { value: 'NONE', hi: 'कोई पुरानी बीमारी नहीं', en: 'No known chronic conditions' }
+      ]
+    },
+    ENT_EAR_THROAT: {
+      symptomHi: 'कान, नाक या गले की समस्या',
+      symptomEn: 'ear, nose or throat condition',
+      stage3QHi: 'कान, नाक या गले में क्या परेशानी हो रही है? (सभी उपयुक्त विकल्प चुनें)',
+      stage3QEn: 'What ear, nose, or throat symptoms do you have? (Select all that apply)',
+      stage3Options: [
+        { value: 'EAR_PAIN_DISCHARGE', hi: 'कान में तेज टीस या मवाद/पानी का रिसाव', en: 'Ear pain, throbbing or fluid/pus discharge' },
+        { value: 'SORE_THROAT_SWALLOW', hi: 'गले में तेज खराश, लाली व थूक निगलने में दर्द', en: 'Severe sore throat with painful swallowing' },
+        { value: 'NOSE_BLOCK_COLD', hi: 'नाक बंद, लगातार छींकें या जुकाम', en: 'Nasal blockage, constant sneezing or runny nose' },
+        { value: 'HEARING_TINNITUS', hi: 'कम सुनाई देना या कान में सीटी जैसी आवाज', en: 'Decreased hearing or persistent ringing (Tinnitus)' }
+      ],
+      redFlags: [
+        { value: 'STRIDOR_AIRWAY', hi: 'सांस लेने में सीटी की आवाज या दम घुटना', en: 'Stridor / respiratory distress / choking sensation' },
+        { value: 'EAR_SPREAD_MASTOID', hi: 'कान के पीछे सूजन, लाली व छूने पर असहनीय दर्द', en: 'Swelling & severe tenderness behind ear' },
+        { value: 'UNABLE_SWALLOW_SALIVA', hi: 'लार भी निगलने में पूरी तरह असमर्थ होना', en: 'Inability to swallow saliva or fluids' },
+        { value: 'NONE', hi: 'इनमें से कोई नहीं', en: 'None of these' }
+      ],
+      pastHistory: [
+        { value: 'CHRONIC_SINUS_ALLERGY', hi: 'पुराना साइनस या मौसमी एलर्जी', en: 'Chronic sinusitis or seasonal allergy' },
+        { value: 'EAR_DRUM_PERFORATION', hi: 'कान के पर्दे में छेद या पुराना कान बहना', en: 'Perforated ear drum / chronic otitis' },
+        { value: 'TONSIL_RECURRENT', hi: 'बार-बार टॉन्सिल पकने की समस्या', en: 'Recurrent tonsillitis' },
+        { value: 'NONE', hi: 'कोई पुरानी बीमारी नहीं', en: 'No known chronic conditions' }
+      ]
+    },
+    CHEST_CARDIO: {
+      symptomHi: 'सीने में दर्द व भारीपन',
+      symptomEn: 'chest discomfort',
+      stage3QHi: 'सीने में दर्द या भारीपन का अहसास किस प्रकार का है? (सभी उपयुक्त विकल्प चुनें)',
+      stage3QEn: 'Where is the chest discomfort and what does it feel like? (Select all that apply)',
+      stage3Options: [
+        { value: 'CENTER_PRESSURE', hi: 'सीने के ठीक बीच में भारी दबाव व जकड़न (कसाव)', en: 'Heavy squeezing pressure in center of chest' },
+        { value: 'LEFT_ARM_JAW', hi: 'बाईं तरफ जो बाएं हाथ, कंधे या जबड़े में फैलता है', en: 'Left chest radiating to left arm, shoulder or jaw' },
+        { value: 'SHARP_BREATHING', hi: 'गहरी सांस लेने या खांसने पर सुई जैसी चुभन', en: 'Sharp stabbing pain when taking deep breaths' },
+        { value: 'PALPITATION_FLUTTER', hi: 'दिल की असामान्य तेज धड़कन या घबराहट', en: 'Pounding palpitations or fluttering sensation' }
+      ],
+      redFlags: [
+        { value: 'BREATHLESSNESS_REST', hi: 'बैठे-बैठे भी सांस फूलना या सांस लेने में भारी तकलीफ', en: 'Severe shortness of breath at rest / gasping' },
+        { value: 'COLD_SWEAT', hi: 'ठंडा पसीना छूटना व तेज घबराहट', en: 'Profuse cold sweating & clamminess' },
+        { value: 'DIZZINESS_SYNCOPE', hi: 'अचानक चक्कर आना या बेहोशी जैसा लगना', en: 'Dizziness, lightheadedness or fainting' },
+        { value: 'UNRELENTING_PRESSURE', hi: 'लगातार बना हुआ असहनीय दबाव जो आराम से भी न घटे', en: 'Severe crushing pressure >15 mins at rest' },
+        { value: 'NONE', hi: 'इनमें से कोई नहीं', en: 'None of these' }
+      ],
+      pastHistory: [
+        { value: 'HEART_DISEASE', hi: 'हृदय रोग / पहले दिल का दौरा या स्टेंट', en: 'Prior heart disease / attack / stent' },
+        { value: 'HYPERTENSION', hi: 'उच्च रक्तचाप (High BP)', en: 'Hypertension (BP)' },
+        { value: 'DIABETES', hi: 'मधुमेह (डायबिटीज / शुगर)', en: 'Diabetes Mellitus' },
+        { value: 'CHOLESTEROL', hi: 'हाई कोलेस्ट्रॉल (खून में चर्बी)', en: 'High Cholesterol' },
+        { value: 'NONE', hi: 'कोई पुरानी बीमारी नहीं', en: 'No known chronic conditions' }
+      ]
+    },
+    RESPIRATORY: {
+      symptomHi: 'खांसी व सांस की समस्या',
+      symptomEn: 'respiratory symptoms and cough',
+      stage3QHi: 'सांस या खांसी से जुड़ी क्या तकलीफ महसूस हो रही है? (सभी उपयुक्त विकल्प चुनें)',
+      stage3QEn: 'What respiratory or breathing symptoms are you experiencing? (Select all that apply)',
+      stage3Options: [
+        { value: 'DRY_COUGH', hi: 'लगातार सूखी खांसी बिना बलगम के', en: 'Persistent dry hacking cough' },
+        { value: 'YELLOW_GREEN_SPUTUM', hi: 'पीला या हरा गाढ़ा बलगम आना', en: 'Thick yellow or green sputum' },
+        { value: 'EXERTIONAL_DYSPNEA', hi: 'थोड़ा चलने या सीढ़ियां चढ़ने पर सांस फूलना', en: 'Breathlessness upon mild exertion or walking' },
+        { value: 'WHEEZING_CHEST', hi: 'सांस लेते समय सीने में सीटी या घरघराहट', en: 'Chest tightness with audible wheezing' }
+      ],
+      redFlags: [
+        { value: 'SEVERE_DYSPNEA', hi: 'बैठे-बैठे भी सांस फूलना या बात न कर पाना', en: 'Gasping for breath / unable to speak full sentences' },
+        { value: 'BLOOD_IN_SPUTUM', hi: 'खांसी में खून के छींटे (Hemoptysis)', en: 'Blood in cough / sputum' },
+        { value: 'BLUE_LIPS', hi: 'नाखून या होंठ नीले पड़ना (ऑक्सीजन की कमी)', en: 'Bluish tinge on lips or fingernails (Cyanosis)' },
+        { value: 'STRUGGLING_TO_BREATHE', hi: 'सांस लेने में छाती का बुरी तरह खिंचना', en: 'Accessory muscle use / severe respiratory distress' },
+        { value: 'NONE', hi: 'इनमें से कोई नहीं', en: 'None of these' }
+      ],
+      pastHistory: [
+        { value: 'ASTHMA', hi: 'दमा / अस्थमा (Asthma) या इनहेलर का उपयोग', en: 'Asthma / Inhaler user' },
+        { value: 'COPD_SMOKING', hi: 'पुरानी ब्रोंकाइटिस / बीड़ी-सिगरेट का सेवन', en: 'COPD / Chronic bronchitis' },
+        { value: 'ALLERGIES', hi: 'धूल-धुएं या मौसम से सांस की एलर्जी', en: 'Dust, smoke or seasonal allergy' },
+        { value: 'TB', hi: 'टीबी (Tuberculosis) का इतिहास', en: 'Prior Tuberculosis' },
+        { value: 'NONE', hi: 'कोई पुरानी बीमारी नहीं', en: 'No known chronic conditions' }
+      ]
+    },
+    GASTROINTESTINAL: {
+      symptomHi: 'पेट दर्द व पाचन समस्या',
+      symptomEn: 'abdominal discomfort',
+      stage3QHi: 'पेट या पाचन से जुड़ी क्या परेशानी हो रही है? (सभी उपयुक्त विकल्प चुनें)',
+      stage3QEn: 'What digestive or abdominal symptoms do you have? (Select all that apply)',
+      stage3Options: [
+        { value: 'UPPER_EPIGASTRIC', hi: 'पेट के ऊपरी हिस्से में तेज जलन, खट्टी डकार व भारीपन', en: 'Upper central burning / acid fullness' },
+        { value: 'PERI_UMBILICAL', hi: 'नाभि के आसपास मरोड़ व पतले दस्त', en: 'Twisting cramps around navel with loose stools' },
+        { value: 'RIGHT_LOWER', hi: 'पेट के निचले दाहिने हिस्से में चुभने वाला दर्द', en: 'Right lower abdominal localized sharp pain' },
+        { value: 'GENERAL_BLOATING', hi: 'पूरे पेट में भारी गैस व फूला हुआ अहसास', en: 'Generalized abdominal distension & gas' }
+      ],
+      redFlags: [
+        { value: 'BLOOD_VOMIT_STOOL', hi: 'उल्टी या काले रंग के दस्त में खून आना', en: 'Blood in vomit or dark black tarry stools' },
+        { value: 'UNSTOPPABLE_VOMITING', hi: 'पानी भी न पचना, बार-बार उल्टी होना', en: 'Unable to keep fluids down / continuous vomiting' },
+        { value: 'RIGID_BELLY', hi: 'पेट छूने पर पत्थर जैसा कड़ा व असहनीय दर्द', en: 'Board-like rigid abdomen with rebound tenderness' },
+        { value: 'DEHYDRATION', hi: 'अत्यधिक कमजोरी, पेशाब कम होना व चक्कर', en: 'Severe dehydration, dark urine & faintness' },
+        { value: 'NONE', hi: 'इनमें से कोई नहीं', en: 'None of these' }
+      ],
+      pastHistory: [
+        { value: 'ULCER_GASTRITIS', hi: 'पेट में अल्सर या पुरानी एसिडिटी/गैस्ट्राइटिस', en: 'Peptic ulcer / chronic gastritis' },
+        { value: 'GALLSTONES', hi: 'पित्त की थैली में पथरी (Gallbladder stone)', en: 'Gallstones' },
+        { value: 'JAUNDICE', hi: 'पीलिया (Jaundice) या लिवर की बीमारी', en: 'Liver disease / prior jaundice' },
+        { value: 'DIABETES', hi: 'डायबिटीज (शुगर)', en: 'Diabetes' },
+        { value: 'NONE', hi: 'कोई पुरानी बीमारी नहीं', en: 'No known chronic conditions' }
+      ]
+    },
+    MUSCULOSKELETAL: {
+      symptomHi: 'जोड़ों या मांसपेशियों का दर्द',
+      symptomEn: 'joint or muscle pain',
+      stage3QHi: 'जोड़ों या मांसपेशियों में किस प्रकार का दर्द या परेशानी महसूस हो रही है? (सभी उपयुक्त विकल्प चुनें)',
+      stage3QEn: 'What kind of musculoskeletal discomfort do you experience? (Select all that apply)',
+      stage3Options: [
+        { value: 'WEIGHT_BEARING', hi: 'चलने, झुकने या सीढ़ियाँ चढ़ते समय तेज दर्द', en: 'Pain worsened by walking, bending or stairs' },
+        { value: 'VISIBLE_SWELLING', hi: 'जोड़ में स्पष्ट सूजन, गर्माहट या लाली', en: 'Visible swelling, heat, or redness at joint' },
+        { value: 'MORNING_STIFFNESS', hi: 'सुबह सोकर उठने पर ३० मिनट से ज्यादा अकड़न', en: 'Severe morning stiffness lasting >30 minutes' },
+        { value: 'CLICKING_RESTRICTED', hi: 'जोड़ से कट-कट आवाज आना व हिलने में रुकावट', en: 'Clicking/popping sounds and limited movement' }
+      ],
+      redFlags: [
+        { value: 'CANNOT_BEAR_WEIGHT', hi: 'पैर पर थोड़ा सा भी वजन रखने में पूरी तरह असमर्थ', en: 'Completely unable to bear weight / take steps' },
+        { value: 'DEFORMITY_FRACTURE', hi: 'जोड़ या हड्डी का मुड़ना/विकृति (संभावित फ्रैक्चर)', en: 'Visible deformity or bone misalignment' },
+        { value: 'NUMBNESS_TINGLING', hi: 'हाथ या पैर में सुन्नपन, करंट जैसा झनझनाहट', en: 'Pins-and-needles or radiating numbness' },
+        { value: 'HOT_RED_JOINT', hi: 'जोड़ अत्यधिक गर्म, लाल व तेज बुखार', en: 'Joint acutely hot & red with fever' },
+        { value: 'NONE', hi: 'इनमें से कोई नहीं', en: 'None of these' }
+      ],
+      pastHistory: [
+        { value: 'OSTEOARTHRITIS', hi: 'ऑस्टियोआर्थराइटिस (हड्डियों का घिसना)', en: 'Osteoarthritis / Wear and tear' },
+        { value: 'GOUT_URIC_ACID', hi: 'यूरिक एसिड / गाउट (Gout)', en: 'High uric acid / Gout' },
+        { value: 'PRIOR_INJURY', hi: 'पुरानी चोट, मोच या फ्रैक्चर का इतिहास', en: 'Past trauma, sprain or fracture' },
+        { value: 'THYROID_VITD', hi: 'विटामिन D या कैल्शियम की कमी / थायरॉइड', en: 'Vitamin D / Calcium deficiency / Thyroid' },
+        { value: 'NONE', hi: 'कोई पुरानी बीमारी नहीं', en: 'No known chronic conditions' }
+      ]
+    },
+    HEAD_NEURO: {
+      symptomHi: 'सिर दर्द',
+      symptomEn: 'headache',
+      stage3QHi: 'सिर दर्द या न्यूरोलॉजिकल लक्षण किस प्रकार के हैं? (सभी उपयुक्त विकल्प चुनें)',
+      stage3QEn: 'Where is the headache and what sensations are associated? (Select all that apply)',
+      stage3Options: [
+        { value: 'TEMPLE_ONE_SIDE', hi: 'सिर के एक तरफ या कनपटी में (धड़कन/टीस जैसा)', en: 'One side / temple (throbbing/pulsating)' },
+        { value: 'FOREHEAD_BEHIND_EYES', hi: 'माथे और आंखों के ठीक पीछे गहरा भारीपन', en: 'Forehead and deep behind the eyes' },
+        { value: 'BACK_OF_HEAD_NECK', hi: 'सिर के पिछले हिस्से से गर्दन तक खिंचाव व तनाव', en: 'Back of head radiating down to neck' },
+        { value: 'WHOLE_HEAD_BAND', hi: 'पूरे सिर में पट्टी बंधने जैसा भारी दबाव', en: 'Band-like tightness around whole head' }
+      ],
+      redFlags: [
+        { value: 'WORST_SUDDEN_HEADACHE', hi: 'अचानक बिजली जैसा सबसे तेज दर्द (Thunderclap)', en: 'Worst sudden headache of life (Thunderclap)' },
+        { value: 'FOCAL_NEURO_DEFICIT', hi: 'चेहरे का टेढ़ापन, हाथ-पैर में कमजोरी या बोली लड़खड़ाना', en: 'Facial droop, arm weakness or slurred speech' },
+        { value: 'NAUSEA_VOMITING', hi: 'सिरदर्द के साथ तेज उल्टी या रोशनी से चुभन', en: 'Projectile vomiting or severe photophobia' },
+        { value: 'LOSS_OF_CONSCIOUSNESS', hi: 'बेहोशी, दौरा या गंभीर उलझन', en: 'Loss of consciousness, seizures or confusion' },
+        { value: 'NONE', hi: 'इनमें से कोई नहीं', en: 'None of these' }
+      ],
+      pastHistory: [
+        { value: 'MIGRAINE', hi: 'माइग्रेन / बार-बार आधा सीसी का दर्द', en: 'Migraine / Chronic headache' },
+        { value: 'HYPERTENSION', hi: 'उच्च रक्तचाप (High BP)', en: 'High Blood Pressure' },
+        { value: 'SINUS', hi: 'साइनस / पुराना जुकाम', en: 'Sinusitis / Chronic allergy' },
+        { value: 'STRESS_INSOMNIA', hi: 'तनाव या नींद न आने की समस्या', en: 'Stress or Insomnia' },
+        { value: 'NONE', hi: 'कोई पुरानी बीमारी नहीं', en: 'No known chronic conditions' }
+      ]
+    },
+    SKIN_DERM: {
+      symptomHi: 'त्वचा की समस्या',
+      symptomEn: 'skin condition',
+      stage3QHi: 'त्वचा पर किस प्रकार के चकत्ते या लक्षण दिख रहे हैं? (सभी उपयुक्त विकल्प चुनें)',
+      stage3QEn: 'What skin changes or rash characteristics are present? (Select all that apply)',
+      stage3Options: [
+        { value: 'NIGHT_ITCHING', hi: 'रात में बिस्तर पर जाने के बाद अत्यधिक तेज खुजली', en: 'Intense itching, especially worse at night' },
+        { value: 'RED_PATCHES', hi: 'उभरे हुए लाल चकत्ते, जिनमें जलन होती है', en: 'Raised erythematous patches with burning sensation' },
+        { value: 'BLISTERS_OOZING', hi: 'पानी भरे छोटे फफोले या मवाद का रिसाव', en: 'Fluid-filled blisters or yellowish weeping' },
+        { value: 'DRY_SCALY', hi: 'सूखी, पपड़ीदार त्वचा जो सफेद झड़ती है', en: 'Dry, scaly, peeling skin with cracking' }
+      ],
+      redFlags: [
+        { value: 'RAPID_SPREAD', hi: 'पूरे शरीर पर बहुत तेजी से चकत्तों का फैलना', en: 'Rapidly spreading rash over whole body' },
+        { value: 'FACIAL_LIP_SWELLING', hi: 'चेहरे, होंठ या गले में सूजन (एनाफिलेक्सिस संकेत)', en: 'Swelling of lips, face or tongue (Anaphylaxis risk)' },
+        { value: 'SKIN_PEELING_FEVER', hi: 'त्वचा की परत उधड़ना व तेज बुखार', en: 'Extensive skin sloughing with fever' },
+        { value: 'NONE', hi: 'इनमें से कोई नहीं', en: 'None of these' }
+      ],
+      pastHistory: [
+        { value: 'ECZEMA_PSORIASIS', hi: 'एक्जिमा या सोरायसिस (Eczema / Psoriasis)', en: 'Eczema / Psoriasis' },
+        { value: 'DRUG_FOOD_ALLERGY', hi: 'किसी भोजन या दवा से त्वचा एलर्जी', en: 'Food or medication allergy' },
+        { value: 'DIABETES_SKIN', hi: 'डायबिटीज (धीमे घाव भरना)', en: 'Diabetes (slow wound healing)' },
+        { value: 'NONE', hi: 'कोई पुरानी बीमारी नहीं', en: 'No known chronic conditions' }
+      ]
+    },
+    DENTAL: {
+      symptomHi: 'दांत का दर्द',
+      symptomEn: 'toothache',
+      stage3QHi: 'दांत या मुंह में किस प्रकार की तकलीफ महसूस हो रही है? (सभी उपयुक्त विकल्प चुनें)',
+      stage3QEn: 'What symptoms are affecting your teeth or gums? (Select all that apply)',
+      stage3Options: [
+        { value: 'HOT_COLD_SENSITIVITY', hi: 'ठंडा या गर्म पानी लगने पर तेज झनझनाहट', en: 'Sharp sensitivity to cold or hot liquids' },
+        { value: 'CHEWING_PAIN', hi: 'खाना चबाने या दांत दबाने पर असहनीय दर्द', en: 'Severe shooting pain upon chewing' },
+        { value: 'GUM_SWELLING', hi: 'मसूड़े में सूजन, लालिमा या खून आना', en: 'Swollen tender gums with bleeding' },
+        { value: 'CONTINUOUS_THROBBING', hi: 'रात में लगातार धड़कन जैसा गहरा दर्द', en: 'Continuous deep throbbing night pain' }
+      ],
+      redFlags: [
+        { value: 'FACIAL_SWELLING', hi: 'गाल या जबड़े में बड़ी सूजन जो आंख तक जा रही हो', en: 'Facial swelling extending toward eye or neck' },
+        { value: 'CANNOT_OPEN_MOUTH', hi: 'मुंह खोलने या निगलने में भारी असमर्थता (Trismus)', en: 'Unable to open mouth (Trismus) / swallow saliva' },
+        { value: 'HIGH_FEVER', hi: 'दांत दर्द के साथ तेज बुखार व कपकपी', en: 'High fever with dental abscess' },
+        { value: 'NONE', hi: 'इनमें से कोई नहीं', en: 'None of these' }
+      ],
+      pastHistory: [
+        { value: 'DENTAL_CAVITY', hi: 'दांत में पहले कैविटी/कीड़ा या आरसीटी (RCT)', en: 'Prior dental cavity / Root canal' },
+        { value: 'DIABETES', hi: 'डायबिटीज (मसूड़ों के संक्रमण का खतरा)', en: 'Diabetes' },
+        { value: 'NONE', hi: 'कोई पुरानी बीमारी नहीं', en: 'No known chronic conditions' }
+      ]
+    },
+    GENERAL: {
+      symptomHi: 'तकलीफ',
+      symptomEn: 'symptom',
+      stage3QHi: 'आपके लक्षण की सटीक स्थिति कहाँ है और दर्द या परेशानी का प्रकार कैसा है?',
+      stage3QEn: 'Where exactly is your symptom located and what does the sensation feel like?',
+      stage3Options: [
+        { value: 'SHARP_LOCALIZED', hi: 'एक निश्चित जगह पर तेज चुभने जैसा दर्द', en: 'Sharp localized piercing sensation' },
+        { value: 'DULL_HEAVY', hi: 'गहरा भारीपन, दबाव या जकड़न', en: 'Deep ache, heaviness or squeezing tightness' },
+        { value: 'BURNING_THROB', hi: 'जलन या धड़कन जैसी टीस', en: 'Burning or throbbing sensation' },
+        { value: 'RADIATING_SPREAD', hi: 'आसपास के अन्य अंगों में फैलता हुआ', en: 'Radiating or spreading to adjacent areas' }
+      ],
+      redFlags: [
+        { value: 'BREATHLESSNESS_DIZZY', hi: 'सांस फूलना, चक्कर आना या अत्यधिक पसीना', en: 'Breathlessness, dizziness or cold sweating' },
+        { value: 'VOMITING_NAUSEA', hi: 'जी मिचलाना या बार-बार उल्टी होना', en: 'Nausea or frequent vomiting' },
+        { value: 'WEAKNESS_NUMBNESS', hi: 'शरीर के किसी अंग में कमजोरी या सुन्नपन', en: 'Localized weakness or numbness' },
+        { value: 'NO_RED_FLAGS', hi: 'इनमें से कोई नहीं (सामान्य दर्द)', en: 'None of these warning symptoms' }
+      ],
+      pastHistory: [
+        { value: 'HYPERTENSION', hi: 'उच्च रक्तचाप (High BP)', en: 'High Blood Pressure' },
+        { value: 'DIABETES', hi: 'मधुमेह (डायबिटीज / शुगर)', en: 'Diabetes Mellitus' },
+        { value: 'HEART_DISEASE', hi: 'हृदय रोग (Heart Disease)', en: 'Heart Disease' },
+        { value: 'ALLERGIES_ASTHMA', hi: 'दमा या एलर्जी (Asthma / Allergy)', en: 'Asthma / Allergies' },
+        { value: 'NONE', hi: 'कोई पुरानी बीमारी नहीं', en: 'No prior chronic conditions' }
+      ]
+    }
+  };
+
+  // Detect domain with weighted scoring
+  let matchedDomain: DomainKey = 'GENERAL';
+  if (t.includes('urine') || t.includes('urination') || t.includes('पेशाब') || t.includes('मूत्र') || t.includes('kidney') || t.includes('गुर्दा') || t.includes('यूरिन') || t.includes('dysuria')) {
+    matchedDomain = 'URINARY_KIDNEY';
+  } else if (t.includes('eye') || t.includes('आंख') || t.includes('आँख') || t.includes('दृष्टि') || t.includes('vision') || t.includes('cataract') || t.includes('cornea')) {
+    matchedDomain = 'EYE_VISION';
+  } else if (t.includes('ear') || t.includes('कान') || t.includes('throat') || t.includes('गले') || t.includes('गला') || t.includes('tonsil') || t.includes('nose') || t.includes('नाक') || t.includes('छींक')) {
+    matchedDomain = 'ENT_EAR_THROAT';
+  } else if (t.includes('fever') || t.includes('बुखार') || t.includes('chills') || t.includes('कंपकंपी') || t.includes('ठंड') || t.includes('dengue') || t.includes('malaria') || t.includes('वायरल')) {
+    matchedDomain = 'FEVER_INFECTION';
+  } else if (t.includes('chest') || t.includes('सीने') || t.includes('छाती') || t.includes('heart') || t.includes('दिल') || t.includes('धड़कन') || t.includes('angina')) {
+    matchedDomain = 'CHEST_CARDIO';
+  } else if (t.includes('cough') || t.includes('खांसी') || t.includes('कफ') || t.includes('sputum') || t.includes('asthma') || t.includes('breath') || t.includes('सांस')) {
+    matchedDomain = 'RESPIRATORY';
+  } else if (t.includes('stomach') || t.includes('पेट') || t.includes('उल्टी') || t.includes('vomit') || t.includes('दस्त') || t.includes('loose motion') || t.includes('acidity') || t.includes('एसिडिटी')) {
+    matchedDomain = 'GASTROINTESTINAL';
+  } else if (t.includes('head') || t.includes('सिर') || t.includes('सिरदर्द') || t.includes('migraine') || t.includes('चक्कर') || t.includes('dizziness')) {
+    matchedDomain = 'HEAD_NEURO';
+  } else if (t.includes('skin') || t.includes('त्वचा') || t.includes('खुजली') || t.includes('itching') || t.includes('rash') || t.includes('चकत्ते') || t.includes('दाने')) {
+    matchedDomain = 'SKIN_DERM';
+  } else if (t.includes('tooth') || t.includes('दांत') || t.includes('मसूड़े') || t.includes('gum')) {
+    matchedDomain = 'DENTAL';
+  } else if (t.includes('knee') || t.includes('घुटने') || t.includes('back') || t.includes('कमर') || t.includes('joint') || t.includes('जोड़') || t.includes('shoulder') || t.includes('कंधा') || t.includes('ankle') || t.includes('टखने')) {
+    matchedDomain = 'MUSCULOSKELETAL';
+  }
+
+  const dom = DOMAINS[matchedDomain];
+  const symptomHi = dom.symptomHi;
+  const symptomEn = dom.symptomEn;
+
+  const hasDuration = t.includes('दिन') || t.includes('day') || t.includes('सुबह') || t.includes('morning') || t.includes('हफ्ते') || t.includes('week') || t.includes('महीने') || t.includes('कल');
 
   let qTextHi = '';
   let qTextEn = '';
@@ -444,44 +769,37 @@ function getClientNextQuestion(answeredIds: string[], chief: string, lang: strin
     badgeHi = 'लक्षण की स्थिति';
     badgeEn = 'Location & Character';
     inputType = 'MULTI_CHOICE';
-    qTextHi = `आपके ${symptomHi} की सटीक स्थिति कहाँ है और दर्द या असहजता का प्रकार कैसा है?`;
-    qTextEn = `Where exactly is the ${symptomEn} located and what does the sensation feel like?`;
-    options = [
-      { value: 'SHARP_LOCALIZED', label: lang === 'hi' ? 'एक निश्चित जगह पर तेज चुभने जैसा दर्द' : 'Sharp localized piercing sensation' },
-      { value: 'DULL_HEAVY', label: lang === 'hi' ? 'गहरा भारीपन, दबाव या जकड़न' : 'Deep ache, heaviness or squeezing tightness' },
-      { value: 'BURNING_THROB', label: lang === 'hi' ? 'जलन या धड़कन जैसी टीस' : 'Burning or throbbing sensation' },
-      { value: 'RADIATING_SPREAD', label: lang === 'hi' ? 'आसपास के अन्य अंगों में फैलता हुआ' : 'Radiating or spreading to adjacent areas' }
-    ];
+    qTextHi = dom.stage3QHi;
+    qTextEn = dom.stage3QEn;
+    options = dom.stage3Options.map(opt => ({
+      value: opt.value,
+      label: lang === 'hi' ? opt.hi : opt.en
+    }));
   } else if (stageNum === 4) {
     badgeHi = 'गंभीरता व खतरे के संकेत';
     badgeEn = 'Severity & Red Flags';
     inputType = 'MULTI_CHOICE';
-    qTextHi = `इस ${symptomHi} के साथ क्या आपको इनमें से कोई भी गंभीर या असहज लक्षण महसूस हो रहे हैं?`;
+    qTextHi = `इस ${symptomHi} के साथ क्या आपको इनमें से कोई भी गंभीर या असहज लक्षण महसूस हो रहे हैं? (सुरक्षा जांच)`;
     qTextEn = `Along with your ${symptomEn}, are you experiencing any of these critical warning symptoms?`;
-    options = [
-      { value: 'BREATHLESSNESS_DIZZY', label: lang === 'hi' ? 'सांस फूलना, चक्कर आना या अत्यधिक पसीना' : 'Breathlessness, dizziness or cold sweating' },
-      { value: 'VOMITING_NAUSEA', label: lang === 'hi' ? 'जी मिचलाना या बार-बार उल्टी होना' : 'Nausea or frequent vomiting' },
-      { value: 'WEAKNESS_NUMBNESS', label: lang === 'hi' ? 'शरीर के किसी अंग में कमजोरी या सुन्नपन' : 'Localized weakness or numbness' },
-      { value: 'NO_RED_FLAGS', label: lang === 'hi' ? 'इनमें से कोई नहीं (सामान्य दर्द)' : 'None of these warning symptoms' }
-    ];
+    options = dom.redFlags.map(opt => ({
+      value: opt.value,
+      label: lang === 'hi' ? opt.hi : opt.en
+    }));
   } else if (stageNum === 5) {
     badgeHi = 'पूर्व इतिहास';
     badgeEn = 'Medical History';
     inputType = 'MULTI_CHOICE';
     qTextHi = `क्या आपको इनमें से कोई पुरानी बीमारी है, या ऐसा ${symptomHi} पहले कभी हुआ है?`;
     qTextEn = `Do you have a history of any chronic conditions, or prior similar ${symptomEn}?`;
-    options = [
-      { value: 'HYPERTENSION', label: lang === 'hi' ? 'उच्च रक्तचाप (High BP)' : 'High Blood Pressure' },
-      { value: 'DIABETES', label: lang === 'hi' ? 'मधुमेह (डायबिटीज / शुगर)' : 'Diabetes Mellitus' },
-      { value: 'HEART_DISEASE', label: lang === 'hi' ? 'हृदय रोग (Heart Disease)' : 'Heart Disease' },
-      { value: 'ALLERGIES_ASTHMA', label: lang === 'hi' ? 'दमा या एलर्जी (Asthma / Allergy)' : 'Asthma / Allergies' },
-      { value: 'NONE', label: lang === 'hi' ? 'कोई पुरानी बीमारी नहीं' : 'No prior chronic conditions' }
-    ];
+    options = dom.pastHistory.map(opt => ({
+      value: opt.value,
+      label: lang === 'hi' ? opt.hi : opt.en
+    }));
   } else if (stageNum === 6) {
     badgeHi = 'दवाइयाँ व एलर्जी';
     badgeEn = 'Medications & Allergies';
     inputType = 'MULTI_CHOICE';
-    qTextHi = `क्या आपने इस ${symptomHi} के लिए हाल में कोई दवा ली है, और क्या आपको किसी दवा से एलर्जी है?`;
+    qTextHi = `क्या आपने इस ${symptomHi} के लिए हाल में कोई दवा या उपचार लिया है, और क्या आपको किसी दवा से एलर्जी है?`;
     qTextEn = `Have you taken any medicines for your ${symptomEn}, and do you have any known drug allergies?`;
     options = [
       { value: 'TOOK_PAINKILLER', label: lang === 'hi' ? `हाँ, ${symptomHi} कम करने के लिए दवा ली है` : `Took medication/painkiller for ${symptomEn}` },

@@ -27,21 +27,24 @@ class DialogueEngine:
     def detect_domain(self, text: str) -> str:
         t = (text or "").lower()
         
-        cardio_kw = ["chest", "heart", "सीने", "छाती", "धड़कन", "घबराहट", "palpitat", "angina", "cardiac", "left arm", "jaw pain"]
-        if any(kw in t for kw in cardio_kw):
-            return "CARDIOVASCULAR"
+        # Weighted domain matching to ensure high clinical specificity
+        rules = [
+            ("URINARY_KIDNEY", ["urine", "urination", "पेशाब", "मूत्र", "kidney", "गुर्दा", "dysuria", "यूरिन"]),
+            ("EYE_VISION", ["eye", "eyes", "आंख", "आँख", "आंखें", "vision", "रोशनी", "दृष्टि", "cornea", "cataract"]),
+            ("ENT_EAR_THROAT", ["ear", "कान", "throat", "गला", "गले", "tonsil", "टॉन्सिल", "sinus", "साइनस", "nose", "नाक", "छींक"]),
+            ("FEVER_INFECTION", ["fever", "बुखार", "chills", "कंपकंपी", "ठंड", "shivering", "dengue", "malaria", "typhoid"]),
+            ("CARDIOVASCULAR", ["chest", "heart", "सीने", "छाती", "धड़कन", "घबराहट", "palpitat", "angina", "cardiac"]),
+            ("RESPIRATORY", ["cough", "खांसी", "कफ", "sputum", "बलगम", "asthma", "दमा", "breath", "सांस", "wheezing"]),
+            ("GASTROINTESTINAL", ["stomach", "पेट", "abdomen", "उल्टी", "vomit", "दस्त", "loose motion", "diarrhea", "acidity", "एसिडिटी", "gas", "गैस", "कब्ज"]),
+            ("HEAD_NEURO", ["head", "सिर", "सिरदर्द", "migraine", "माइग्रेन", "चक्कर", "dizziness", "vertigo"]),
+            ("SKIN_DERM", ["skin", "त्वचा", "खुजली", "itching", "rash", "चकत्ते", "दाने", "pimple", "दाद", "boil"]),
+            ("DENTAL", ["tooth", "teeth", "दांत", "दाढ़", "मसूड़े", "gum", "cavity"]),
+            ("MUSCULOSKELETAL", ["joint", "घुटने", "knee", "back", "कमर", "पीठ", "shoulder", "कंधा", "जोड़ों", "arthritis", "हड्डी", "bone", "मोच", "sprain", "ankle", "टखने"])
+        ]
 
-        resp_kw = ["fever", "बुखार", "खांसी", "cough", "cold", "जुकाम", "breath", "सांस", "throat", "गले", "कफ", "sputum", "chills", "ठंड"]
-        if any(kw in t for kw in resp_kw):
-            return "RESPIRATORY_FEVER"
-
-        gi_kw = ["stomach", "पेट", "abdomen", "उल्टी", "vomit", "दस्त", "loose motion", "diarrhea", "acidity", "gas", "कब्ज", "digest", "गैस"]
-        if any(kw in t for kw in gi_kw):
-            return "GASTROINTESTINAL"
-
-        msk_kw = ["joint", "घुटने", "knee", "back", "कमर", "पीठ", "shoulder", "जोड़ों", "arthritis", "सूजन", "swelling", "हड्डी", "bone", "दर्द"]
-        if any(kw in t for kw in msk_kw):
-            return "MUSCULOSKELETAL"
+        for domain, keywords in rules:
+            if any(kw in t for kw in keywords):
+                return domain
 
         return "GENERAL"
 
