@@ -65,6 +65,19 @@ def get_encounter_queue(department: Optional[str] = None, db: Session = Depends(
     for enc in encounters:
         p = enc.patient
         has_red_flags = len(enc.red_flags) > 0
+        
+        age_str = ""
+        if p and p.date_of_birth:
+            try:
+                birth_year = int(str(p.date_of_birth)[:4])
+                calc_age = max(1, 2026 - birth_year)
+                age_str = f"{calc_age} Yrs"
+            except Exception:
+                age_str = str(p.date_of_birth)
+        
+        gender_str = (p.gender or "OTHER").capitalize() if p else ""
+        age_gender_display = f"{age_str} • {gender_str}".strip(" • ") if (age_str or gender_str) else "Age/Gender N/A"
+
         queue_list.append({
             "encounter_id": enc.id,
             "encounter_number": enc.encounter_number,
@@ -72,7 +85,9 @@ def get_encounter_queue(department: Optional[str] = None, db: Session = Depends(
             "patient_name": f"{p.first_name} {p.last_name or ''}".strip() if p else "Unknown",
             "hospital_patient_id": p.hospital_patient_id if p else "N/A",
             "abha_number_masked": p.abha_number_masked if p else None,
-            "age_gender": f"{p.date_of_birth or ''} / {p.gender}" if p else "",
+            "age_gender": age_gender_display,
+            "age": age_str,
+            "gender": gender_str,
             "queue_token": enc.queue_token,
             "status": enc.status,
             "priority": enc.priority,

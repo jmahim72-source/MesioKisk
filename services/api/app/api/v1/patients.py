@@ -36,6 +36,10 @@ def create_patient(payload: PatientCreate, db: Session = Depends(get_db)):
             existing_patient.preferred_language = payload.preferred_language
         if payload.last_name and not existing_patient.last_name:
             existing_patient.last_name = payload.last_name
+        if payload.date_of_birth:
+            existing_patient.date_of_birth = payload.date_of_birth
+        if payload.gender:
+            existing_patient.gender = payload.gender
         db.commit()
         db.refresh(existing_patient)
         return StandardResponse(

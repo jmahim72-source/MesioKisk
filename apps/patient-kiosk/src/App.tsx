@@ -29,8 +29,9 @@ export function App() {
     lastName: '',
     phone: '',
     abha: '',
+    age: '',
     gender: 'FEMALE',
-    dob: '1968-04-15'
+    dob: '1981-01-01'
   });
   const [patientId, setPatientId] = useState<string>('');
   const [encounterId, setEncounterId] = useState<string>('');
@@ -129,7 +130,7 @@ export function App() {
 
   const handleCompleteReset = () => {
     stopVoiceInput();
-    setPatient({ firstName: '', lastName: '', phone: '', abha: '', gender: 'FEMALE', dob: '1968-04-15' });
+    setPatient({ firstName: '', lastName: '', phone: '', abha: '', age: '', gender: 'FEMALE', dob: '1981-01-01' });
     setAnswers({});
     setAnswerInput('');
     setSelectedMultiOptions([]);
@@ -648,6 +649,7 @@ export function App() {
       lastName: 'Devi',
       phone: '+919876543210',
       abha: '91-2345-6789-0123',
+      age: '58',
       gender: 'FEMALE',
       dob: '1968-04-15'
     });
@@ -678,12 +680,16 @@ export function App() {
       return;
     }
 
+    const ageNum = parseInt(patient.age) || 45;
+    const calculatedDob = `${2026 - Math.max(1, Math.min(120, ageNum))}-01-01`;
+
     const pData = await KioskAPI.registerPatient({
       first_name: patient.firstName,
       last_name: patient.lastName,
       phone: patient.phone,
       abha_number: patient.abha,
-      gender: patient.gender,
+      gender: patient.gender || 'FEMALE',
+      date_of_birth: calculatedDob,
       preferred_language: lang
     });
 
@@ -1004,6 +1010,57 @@ export function App() {
                 placeholder={lang === 'hi' ? 'उदा. देवी' : 'e.g. Devi'}
                 style={{ width: '100%', minHeight: '60px', padding: '12px 18px', fontSize: '20px', borderRadius: '14px', border: '2px solid var(--border-color)' }}
               />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontWeight: '700', marginBottom: '8px', fontSize: '18px' }}>
+                {lang === 'hi' ? 'उम्र (Age in Years) *' : 'Age (Years) *'}
+              </label>
+              <input
+                type="number"
+                min="1"
+                max="120"
+                value={patient.age}
+                onChange={(e) => setPatient({ ...patient, age: e.target.value })}
+                placeholder={lang === 'hi' ? 'उदा. 45' : 'e.g. 45'}
+                style={{ width: '100%', minHeight: '60px', padding: '12px 18px', fontSize: '20px', borderRadius: '14px', border: '2px solid var(--border-color)' }}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontWeight: '700', marginBottom: '8px', fontSize: '18px' }}>
+                {lang === 'hi' ? 'लिंग (Gender) *' : 'Gender *'}
+              </label>
+              <div style={{ display: 'flex', gap: '8px', height: '60px' }}>
+                {[
+                  { val: 'FEMALE', hi: 'महिला (F)', en: 'Female' },
+                  { val: 'MALE', hi: 'पुरुष (M)', en: 'Male' },
+                  { val: 'OTHER', hi: 'अन्य (O)', en: 'Other' }
+                ].map((g) => {
+                  const isSelected = (patient.gender || 'FEMALE') === g.val;
+                  return (
+                    <button
+                      key={g.val}
+                      type="button"
+                      onClick={() => setPatient({ ...patient, gender: g.val })}
+                      style={{
+                        flex: 1,
+                        borderRadius: '14px',
+                        border: isSelected ? '3px solid var(--primary)' : '2px solid var(--border-color)',
+                        background: isSelected ? '#ecfdf5' : 'white',
+                        color: isSelected ? 'var(--primary-dark)' : 'var(--text-main)',
+                        fontWeight: isSelected ? '800' : '600',
+                        fontSize: '16px',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                        boxShadow: isSelected ? '0 2px 8px rgba(13, 148, 136, 0.25)' : 'none'
+                      }}
+                    >
+                      {lang === 'hi' ? g.hi : g.en}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             <div>

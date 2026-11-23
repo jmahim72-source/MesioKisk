@@ -293,7 +293,7 @@ export function App() {
                     </span>
                   </div>
                   <div style={{ fontSize: '14px', opacity: 0.8, marginTop: '4px' }}>
-                    ABHA: {selectedEncounter.abha_number_masked} • Hospital ID: {selectedEncounter.hospital_patient_id} • 58 Yrs / Female
+                    ABHA: {selectedEncounter.abha_number_masked || 'Not Linked'} • Hospital ID: {selectedEncounter.hospital_patient_id} • Age & Gender: {selectedEncounter.age_gender || 'Not specified'}
                   </div>
                 </div>
 
@@ -349,6 +349,15 @@ export function App() {
                         <Sparkles color="var(--primary)" size={20} /> AI Clinical Intake Summary
                       </h3>
                       <span className="badge badge-routine">Draft v1 (AI-Generated)</span>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '16px', background: '#f1f5f9', padding: '10px 14px', borderRadius: '8px', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '13px', fontWeight: '800', color: 'var(--text-muted)' }}>PATIENT DEMOGRAPHICS:</span>
+                      <strong style={{ fontSize: '14px', color: '#0f172a' }}>{selectedEncounter.patient_name}</strong>
+                      <span style={{ color: 'var(--border-color)' }}>|</span>
+                      <span className="badge" style={{ background: '#0284c7', color: 'white', fontSize: '13px', padding: '4px 12px', fontWeight: '700' }}>
+                        {selectedEncounter.age_gender || 'Demographics recorded'}
+                      </span>
                     </div>
 
                     <div style={{ marginBottom: '16px' }}>
