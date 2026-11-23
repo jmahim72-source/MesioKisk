@@ -3,7 +3,7 @@ import {
   Mic, MicOff, Volume2, ShieldCheck, HeartPulse, User, CheckCircle2,
   AlertTriangle, ArrowRight, ArrowLeft, RefreshCw, FileText, Upload,
   Clock, Sparkles, Building2, Eye, EyeOff, Lock, Stethoscope, Check,
-  Activity, SlidersHorizontal, Radio, X, VolumeX, Play, HelpCircle
+  Activity, SlidersHorizontal, Radio, X, VolumeX, Play, HelpCircle, Loader2
 } from 'lucide-react';
 import { KioskAPI } from './services/api';
 
@@ -44,6 +44,8 @@ export function App() {
   const [answerInput, setAnswerInput] = useState<string>('');
   const [selectedMultiOptions, setSelectedMultiOptions] = useState<string[]>([]);
   const [isListening, setIsListening] = useState<boolean>(false);
+  const [isSubmittingAnswer, setIsSubmittingAnswer] = useState<boolean>(false);
+  const [submittingOptionText, setSubmittingOptionText] = useState<string>('');
   const [redFlags, setRedFlags] = useState<any[]>([]);
   const [progress, setProgress] = useState<number>(10);
 
@@ -713,6 +715,8 @@ export function App() {
   };
 
   const handleAnswerSubmit = async (valueToSubmit?: string) => {
+    if (isSubmittingAnswer) return;
+
     let text = valueToSubmit || answerInput;
     if (currentQuestion?.input_type === 'MULTI_CHOICE' && selectedMultiOptions.length > 0) {
       text = selectedMultiOptions.join(', ');
@@ -720,39 +724,47 @@ export function App() {
 
     if (!text && currentQuestion?.required) return;
 
-    const qid = currentQuestion?.id || `stage_${currentStageNum}`;
-    const qText = currentQuestion?.localized_text || currentQuestion?.text || qid;
-    setAnswers((prev) => ({ ...prev, [qid]: text }));
+    setIsSubmittingAnswer(true);
+    setSubmittingOptionText(text);
 
-    const res = await KioskAPI.submitAnswer(interviewId, qid, text, undefined, qText);
-    
-    const nextStage = currentStageNum + 1;
-    setCurrentStageNum(nextStage);
-    setProgress(res.interview_progress || Math.min(100, Math.round((nextStage / 7) * 100)));
+    try {
+      const qid = currentQuestion?.id || `stage_${currentStageNum}`;
+      const qText = currentQuestion?.localized_text || currentQuestion?.text || qid;
+      setAnswers((prev) => ({ ...prev, [qid]: text }));
 
-    if (res.red_flag_check?.alerts?.length > 0) {
-      setRedFlags(res.red_flag_check.alerts);
-    }
+      const res = await KioskAPI.submitAnswer(interviewId, qid, text, undefined, qText);
+      
+      const nextStage = currentStageNum + 1;
+      setCurrentStageNum(nextStage);
+      setProgress(res.interview_progress || Math.min(100, Math.round((nextStage / 7) * 100)));
 
-    setAnswerInput('');
-    setSelectedMultiOptions([]);
-
-    if (res.next_question && nextStage <= 7) {
-      const nq = { ...res.next_question };
-      if (res.clinical_reasoning) {
-        nq.clinical_reasoning = res.clinical_reasoning;
+      if (res.red_flag_check?.alerts?.length > 0) {
+        setRedFlags(res.red_flag_check.alerts);
       }
-      setCurrentQuestion(nq);
-      if (nq.localized_text) {
-        playAudio(nq.localized_text);
+
+      setAnswerInput('');
+      setSelectedMultiOptions([]);
+
+      if (res.next_question && nextStage <= 7) {
+        const nq = { ...res.next_question };
+        if (res.clinical_reasoning) {
+          nq.clinical_reasoning = res.clinical_reasoning;
+        }
+        setCurrentQuestion(nq);
+        if (nq.localized_text) {
+          playAudio(nq.localized_text);
+        }
+      } else {
+        setStep('DOCUMENTS');
+        playAudio(
+          lang === 'hi'
+            ? '७-चरणीय नैदानिक प्रश्नावली पूरी हो गई है। यदि आपके पास पुराने पर्चे या जांच रिपोर्ट हैं तो कृपया अपलोड करें।'
+            : '7-Stage Clinical Intake completed. Please upload any previous prescriptions or test reports.'
+        );
       }
-    } else {
-      setStep('DOCUMENTS');
-      playAudio(
-        lang === 'hi'
-          ? '७-चरणीय नैदानिक प्रश्नावली पूरी हो गई है। यदि आपके पास पुराने पर्चे या जांच रिपोर्ट हैं तो कृपया अपलोड करें।'
-          : '7-Stage Clinical Intake completed. Please upload any previous prescriptions or test reports.'
-      );
+    } finally {
+      setIsSubmittingAnswer(false);
+      setSubmittingOptionText('');
     }
   };
 
@@ -1162,13 +1174,25 @@ export function App() {
                 rows={2}
                 value={answerInput}
                 onChange={(e) => setAnswerInput(e.target.value)}
+                disabled={isSubmittingAnswer}
                 placeholder={lang === 'en' ? 'Speak into mic or type your answer here...' : 'माइक से बोलें या यहाँ अपना उत्तर लिखें...'}
-                style={{ flex: 1, padding: '16px', fontSize: '20px', borderRadius: '14px', border: '2px solid var(--border-color)', resize: 'none', background: '#ffffff', color: '#0f172a', fontWeight: '600' }}
+                style={{
+                  flex: 1,
+                  padding: '16px',
+                  fontSize: '20px',
+                  borderRadius: '14px',
+                  border: '2px solid var(--border-color)',
+                  resize: 'none',
+                  background: isSubmittingAnswer ? '#f1f5f9' : '#ffffff',
+                  color: '#0f172a',
+                  fontWeight: '600'
+                }}
               />
               <button
                 type="button"
                 className={`btn ${isListening ? 'btn-danger' : 'btn-primary'}`}
                 onClick={toggleVoiceInput}
+                disabled={isSubmittingAnswer}
                 style={{
                   minWidth: '84px',
                   display: 'flex',
@@ -1189,21 +1213,63 @@ export function App() {
             </div>
           </div>
 
+          {/* AI Clinical Processing Animation Banner */}
+          {isSubmittingAnswer && (
+            <div className="ai-processing-card">
+              <div className="ai-processing-header">
+                <div className="ai-processing-avatar">
+                  <Sparkles size={24} className="sparkle-pulse" />
+                </div>
+                <div>
+                  <div className="ai-processing-title">
+                    <Loader2 size={18} className="spin-animation" />
+                    <span>
+                      {lang === 'hi'
+                        ? 'डॉक्टर एआई उत्तर का विश्लेषण कर रहा है...'
+                        : 'AI Doctor is analyzing your response...'}
+                    </span>
+                  </div>
+                  <div className="ai-processing-subtitle">
+                    {lang === 'hi'
+                      ? `दर्ज विकल्प: "${submittingOptionText}" • अगला नैदानिक प्रश्न तैयार किया जा रहा है`
+                      : `Selected: "${submittingOptionText}" • Formulating personalized clinical follow-up`}
+                  </div>
+                </div>
+              </div>
+              <div className="ai-loading-wave">
+                <span className="ai-wave-bar"></span>
+                <span className="ai-wave-bar"></span>
+                <span className="ai-wave-bar"></span>
+                <span className="ai-wave-bar"></span>
+                <span className="ai-wave-bar"></span>
+              </div>
+            </div>
+          )}
+
           {/* FACES SCALE FOR PAIN */}
           {currentQuestion.input_type === 'FACES_SCALE' && currentQuestion.options && (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '14px', marginBottom: '24px' }}>
-              {currentQuestion.options.map((opt: any, idx: number) => (
-                <button
-                  key={idx}
-                  className="option-card"
-                  style={{ textAlign: 'center', flexDirection: 'column', gap: '8px', padding: '18px 12px' }}
-                  onClick={() => handleAnswerSubmit(String(opt.value))}
-                >
-                  <span style={{ fontSize: '36px' }}>{getFaceEmoji(Number(opt.value))}</span>
-                  <strong style={{ fontSize: '18px' }}>{opt.value}/10</strong>
-                  <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{opt.label}</span>
-                </button>
-              ))}
+              {currentQuestion.options.map((opt: any, idx: number) => {
+                const optVal = String(opt.value);
+                const isSelectedSubmitting = isSubmittingAnswer && submittingOptionText === optVal;
+                const isOtherDisabled = isSubmittingAnswer && !isSelectedSubmitting;
+                return (
+                  <button
+                    key={idx}
+                    className={`option-card ${isSelectedSubmitting ? 'submitting-active' : ''} ${isOtherDisabled ? 'submitting-disabled' : ''}`}
+                    style={{ textAlign: 'center', flexDirection: 'column', gap: '8px', padding: '18px 12px' }}
+                    onClick={() => handleAnswerSubmit(optVal)}
+                    disabled={isSubmittingAnswer}
+                  >
+                    <span style={{ fontSize: '36px' }}>{getFaceEmoji(Number(opt.value))}</span>
+                    <strong style={{ fontSize: '18px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      {isSelectedSubmitting && <Loader2 size={16} className="spin-animation" />}
+                      {opt.value}/10
+                    </strong>
+                    <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{opt.label}</span>
+                  </button>
+                );
+              })}
             </div>
           )}
 
@@ -1211,12 +1277,14 @@ export function App() {
           {currentQuestion.input_type === 'MULTI_CHOICE' && currentQuestion.options && (
             <div className="option-grid" style={{ marginBottom: '20px' }}>
               {currentQuestion.options.map((opt: any, idx: number) => {
-                const isSelected = selectedMultiOptions.includes(opt.label || String(opt.value));
+                const optVal = opt.label || String(opt.value);
+                const isSelected = selectedMultiOptions.includes(optVal);
                 return (
                   <button
                     key={idx}
-                    className={`option-card ${isSelected ? 'selected' : ''}`}
-                    onClick={() => handleToggleMulti(opt.label || String(opt.value))}
+                    className={`option-card ${isSelected ? 'selected' : ''} ${isSubmittingAnswer ? 'submitting-disabled' : ''}`}
+                    onClick={() => handleToggleMulti(optVal)}
+                    disabled={isSubmittingAnswer}
                     style={{ border: isSelected ? '2px solid var(--primary)' : '1px solid var(--border-color)', background: isSelected ? '#ecfdf5' : 'white' }}
                   >
                     <span>{opt.label || opt.value}</span>
@@ -1230,25 +1298,49 @@ export function App() {
           {/* SINGLE_CHOICE Quick Options */}
           {currentQuestion.input_type !== 'FACES_SCALE' && currentQuestion.input_type !== 'MULTI_CHOICE' && currentQuestion.options && currentQuestion.options.length > 0 && (
             <div className="option-grid">
-              {currentQuestion.options.map((opt: any, idx: number) => (
-                <button
-                  key={idx}
-                  className="option-card"
-                  onClick={() => handleAnswerSubmit(opt.label || String(opt.value))}
-                >
-                  <span>{opt.label || opt.value}</span>
-                  <ArrowRight size={20} color="var(--primary)" />
-                </button>
-              ))}
+              {currentQuestion.options.map((opt: any, idx: number) => {
+                const optText = opt.label || String(opt.value);
+                const isSelectedSubmitting = isSubmittingAnswer && submittingOptionText === optText;
+                const isOtherDisabled = isSubmittingAnswer && !isSelectedSubmitting;
+                return (
+                  <button
+                    key={idx}
+                    className={`option-card ${isSelectedSubmitting ? 'submitting-active' : ''} ${isOtherDisabled ? 'submitting-disabled' : ''}`}
+                    onClick={() => handleAnswerSubmit(optText)}
+                    disabled={isSubmittingAnswer}
+                  >
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '10px' }}>
+                      {isSelectedSubmitting && <Loader2 size={20} className="spin-animation" color="var(--primary)" />}
+                      {optText}
+                    </span>
+                    {isSelectedSubmitting ? (
+                      <span style={{ fontSize: '13px', fontWeight: '800', color: 'var(--primary)', background: '#ccfbf1', padding: '4px 10px', borderRadius: '12px' }}>
+                        {lang === 'hi' ? 'विश्लेषण...' : 'Analyzing...'}
+                      </span>
+                    ) : (
+                      <ArrowRight size={20} color="var(--primary)" />
+                    )}
+                  </button>
+                );
+              })}
             </div>
           )}
 
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '20px' }}>
-            <button className="btn btn-secondary btn-lg" onClick={() => setStep('IDENTIFICATION')}>
+            <button className="btn btn-secondary btn-lg" onClick={() => setStep('IDENTIFICATION')} disabled={isSubmittingAnswer}>
               <ArrowLeft size={24} /> {lang === 'hi' ? 'पीछे' : 'Back'}
             </button>
-            <button className="btn btn-primary btn-lg" onClick={() => handleAnswerSubmit()}>
-              {lang === 'hi' ? 'अगला चरण (Next Stage)' : 'Next Stage'} <ArrowRight size={24} />
+            <button className="btn btn-primary btn-lg" onClick={() => handleAnswerSubmit()} disabled={isSubmittingAnswer}>
+              {isSubmittingAnswer ? (
+                <>
+                  <Loader2 size={22} className="spin-animation" />
+                  <span>{lang === 'hi' ? 'उत्तर भेजा जा रहा है...' : 'Processing...'}</span>
+                </>
+              ) : (
+                <>
+                  {lang === 'hi' ? 'अगला चरण (Next Stage)' : 'Next Stage'} <ArrowRight size={24} />
+                </>
+              )}
             </button>
           </div>
         </div>
