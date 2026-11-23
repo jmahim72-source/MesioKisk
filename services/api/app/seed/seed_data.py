@@ -53,7 +53,11 @@ def init_db(db: Session = None):
             db.add(admin)
 
         # Seed Demo Patient (Meena Devi from Demo Script)
-        patient = db.query(Patient).filter(Patient.hospital_patient_id == "HOSP-2026-001245").first()
+        patient = db.query(Patient).filter(
+            (Patient.hospital_patient_id == "HOSP-2026-001245") |
+            (Patient.abha_number == "91-2345-6789-0123") |
+            (Patient.id == "pat_meena_01")
+        ).first()
         if not patient:
             patient = Patient(
                 id="pat_meena_01",
@@ -74,7 +78,9 @@ def init_db(db: Session = None):
             db.add(patient)
             db.flush()
 
-            # Seed Consent
+        # Seed Consent
+        consent = db.query(Consent).filter(Consent.id == "con_meena_01").first()
+        if not consent:
             consent = Consent(
                 id="con_meena_01",
                 patient_id=patient.id,
@@ -86,7 +92,12 @@ def init_db(db: Session = None):
             )
             db.add(consent)
 
-            # Seed Encounter
+        # Seed Encounter
+        encounter = db.query(Encounter).filter(
+            (Encounter.id == "enc_meena_01") |
+            (Encounter.encounter_number == "OPD-2026-001245")
+        ).first()
+        if not encounter:
             encounter = Encounter(
                 id="enc_meena_01",
                 patient_id=patient.id,
@@ -104,82 +115,87 @@ def init_db(db: Session = None):
             db.flush()
 
             # Seed Red Flag Alert
-            red_flag = RedFlagAlert(
-                id="alert_meena_01",
-                encounter_id=encounter.id,
-                rule_id="CARDIAC_001",
-                alert_type="Acute Coronary Syndrome / Cardiac Emergency",
-                severity="CRITICAL",
-                status="ACTIVE",
-                triggered_symptoms=["chest pain", "breathlessness", "cold sweating"],
-                suggested_action="Immediate 12-lead ECG, troponin, continuous vitals, and urgent cardiologist review.",
-                clinical_context="Triggered by retrosternal chest pain + breathlessness + sweating"
-            )
-            db.add(red_flag)
+            if not db.query(RedFlagAlert).filter(RedFlagAlert.id == "alert_meena_01").first():
+                red_flag = RedFlagAlert(
+                    id="alert_meena_01",
+                    encounter_id=encounter.id,
+                    rule_id="CARDIAC_001",
+                    alert_type="Acute Coronary Syndrome / Cardiac Emergency",
+                    severity="CRITICAL",
+                    status="ACTIVE",
+                    triggered_symptoms=["chest pain", "breathlessness", "cold sweating"],
+                    suggested_action="Immediate 12-lead ECG, troponin, continuous vitals, and urgent cardiologist review.",
+                    clinical_context="Triggered by retrosternal chest pain + breathlessness + sweating"
+                )
+                db.add(red_flag)
 
             # Seed Document & Extracted Entities
-            doc = Document(
-                id="doc_meena_rx_01",
-                encounter_id=encounter.id,
-                patient_id=patient.id,
-                file_name="prescription_jan_2026.jpg",
-                file_type="PRESCRIPTION",
-                storage_path="/documents/prescription_jan_2026.jpg",
-                ocr_status="COMPLETED",
-                ocr_text="Rx: Tab Metformin 500mg PO BD x 1 month (After meals)\nTab Telmisartan 40mg PO OD\nDiagnosis: Type 2 Diabetes Mellitus, Essential Hypertension",
-                ocr_confidence=0.94
-            )
-            db.add(doc)
-            db.flush()
+            if not db.query(Document).filter(Document.id == "doc_meena_rx_01").first():
+                doc = Document(
+                    id="doc_meena_rx_01",
+                    encounter_id=encounter.id,
+                    patient_id=patient.id,
+                    file_name="prescription_jan_2026.jpg",
+                    file_type="PRESCRIPTION",
+                    storage_path="/documents/prescription_jan_2026.jpg",
+                    ocr_status="COMPLETED",
+                    ocr_text="Rx: Tab Metformin 500mg PO BD x 1 month (After meals)\nTab Telmisartan 40mg PO OD\nDiagnosis: Type 2 Diabetes Mellitus, Essential Hypertension",
+                    ocr_confidence=0.94
+                )
+                db.add(doc)
+                db.flush()
 
-            entity1 = ExtractedEntity(
-                id="ent_01",
-                document_id=doc.id,
-                encounter_id=encounter.id,
-                entity_type="MEDICATION",
-                raw_text="Metformin 500 mg BD",
-                normalized={"name": "Metformin", "strength": "500 mg", "frequency": "TWICE_DAILY"},
-                confidence=0.95,
-                verification_status="PENDING",
-                source_snippet="Tab Metformin 500mg PO BD"
-            )
-            entity2 = ExtractedEntity(
-                id="ent_02",
-                document_id=doc.id,
-                encounter_id=encounter.id,
-                entity_type="MEDICATION",
-                raw_text="Telmisartan 40 mg OD",
-                normalized={"name": "Telmisartan", "strength": "40 mg", "frequency": "ONCE_DAILY"},
-                confidence=0.92,
-                verification_status="PENDING",
-                source_snippet="Tab Telmisartan 40mg PO OD"
-            )
-            db.add(entity1)
-            db.add(entity2)
+                if not db.query(ExtractedEntity).filter(ExtractedEntity.id == "ent_01").first():
+                    entity1 = ExtractedEntity(
+                        id="ent_01",
+                        document_id=doc.id,
+                        encounter_id=encounter.id,
+                        entity_type="MEDICATION",
+                        raw_text="Metformin 500 mg BD",
+                        normalized={"name": "Metformin", "strength": "500 mg", "frequency": "TWICE_DAILY"},
+                        confidence=0.95,
+                        verification_status="PENDING",
+                        source_snippet="Tab Metformin 500mg PO BD"
+                    )
+                    db.add(entity1)
+                if not db.query(ExtractedEntity).filter(ExtractedEntity.id == "ent_02").first():
+                    entity2 = ExtractedEntity(
+                        id="ent_02",
+                        document_id=doc.id,
+                        encounter_id=encounter.id,
+                        entity_type="MEDICATION",
+                        raw_text="Telmisartan 40 mg OD",
+                        normalized={"name": "Telmisartan", "strength": "40 mg", "frequency": "ONCE_DAILY"},
+                        confidence=0.92,
+                        verification_status="PENDING",
+                        source_snippet="Tab Telmisartan 40mg PO OD"
+                    )
+                    db.add(entity2)
 
             # Seed Clinical Summary Draft
-            summary = ClinicalSummary(
-                id="sum_meena_01",
-                encounter_id=encounter.id,
-                version=1,
-                status="DRAFT",
-                summary_json={
-                    "chief_complaint": "Chest pain and breathlessness since morning (4 hours)",
-                    "history_present_illness": "58-year-old female presented with retrosternal chest heaviness radiating to left shoulder associated with cold sweating and shortness of breath.",
-                    "past_medical_history": ["Type 2 Diabetes Mellitus", "Essential Hypertension"],
-                    "medications": [
-                        {"name": "Metformin", "dose": "500 mg", "frequency": "TWICE_DAILY"},
-                        {"name": "Telmisartan", "dose": "40 mg", "frequency": "ONCE_DAILY"}
-                    ],
-                    "allergies": ["No known drug allergies"],
-                    "functional_impact": "Severe functional limitation due to acute chest heaviness, cold sweating, and shortness of breath.",
-                    "red_flags": ["Acute Coronary Syndrome (CARDIAC_001) - Immediate 12-lead ECG, troponin, and urgent cardiologist review required."]
-                },
-                summary_text="Patient Meena Devi (58 F) presented with acute chest discomfort and shortness of breath. History of Type 2 Diabetes and Hypertension.",
-                generated_by="AI_SERVICE",
-                generation_confidence=0.93
-            )
-            db.add(summary)
+            if not db.query(ClinicalSummary).filter(ClinicalSummary.id == "sum_meena_01").first():
+                summary = ClinicalSummary(
+                    id="sum_meena_01",
+                    encounter_id=encounter.id,
+                    version=1,
+                    status="DRAFT",
+                    summary_json={
+                        "chief_complaint": "Chest pain and breathlessness since morning (4 hours)",
+                        "history_present_illness": "58-year-old female presented with retrosternal chest heaviness radiating to left shoulder associated with cold sweating and shortness of breath.",
+                        "past_medical_history": ["Type 2 Diabetes Mellitus", "Essential Hypertension"],
+                        "medications": [
+                            {"name": "Metformin", "dose": "500 mg", "frequency": "TWICE_DAILY"},
+                            {"name": "Telmisartan", "dose": "40 mg", "frequency": "ONCE_DAILY"}
+                        ],
+                        "allergies": ["No known drug allergies"],
+                        "functional_impact": "Severe functional limitation due to acute chest heaviness, cold sweating, and shortness of breath.",
+                        "red_flags": ["Acute Coronary Syndrome (CARDIAC_001) - Immediate 12-lead ECG, troponin, and urgent cardiologist review required."]
+                    },
+                    summary_text="Patient Meena Devi (58 F) presented with acute chest discomfort and shortness of breath. History of Type 2 Diabetes and Hypertension.",
+                    generated_by="AI_SERVICE",
+                    generation_confidence=0.93
+                )
+                db.add(summary)
 
         db.commit()
     finally:
